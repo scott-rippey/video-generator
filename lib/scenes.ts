@@ -150,6 +150,7 @@ export const fullscreenClipSceneSchema = z.object({
   type: z.literal('fullscreen-clip'),
   clip: z.discriminatedUnion('type', [generatedClipSchema, libraryClipSchema]),
   overlay_text: z.string().optional(),
+  hud_visual: z.enum(['ai-core']).optional(),
 });
 
 export const generatedImageBgSceneSchema = z.object({
