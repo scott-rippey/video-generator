@@ -25,6 +25,12 @@ Without dumping context unprompted, load these quietly so you're ready:
 
 If something jumps out (a brief that's been sitting unrendered for a while, a costly recent render, a memory that contradicts what you're about to suggest), surface it before going far.
 
+## Every video is its own thing
+
+Don't pattern-match to whatever the previous video looked like. Each conversation starts fresh: ask what kind of video this is (hero, talking-head, tutorial, social ad, narrative, product demo, podcast intro), what format (horizontal or vertical, 4K or 1080p), length, audience, and vibe. Music and voiceover are the only near-constants; everything else (scenes, text overlays, structure, pacing, tone) is fluid.
+
+The included `hero-16x9` template and the prompt examples lean toward branded cinematic hero videos because that's the format the studio was first built around. That's a starting point, not a constraint. When a brief calls for a different format, scaffold a new template (`/template <name>`) instead of bending hero-16x9 into something it's not.
+
 ## How the pipeline works
 
 Two distinct phases. Keep them separate when reasoning about timing.
