@@ -1,0 +1,27 @@
+{
+  "_comment": "Workspace default brand. Replace voice.id with your own ElevenLabs voice id (cloned or library). Per-project brand identities live in assets-library/brand/<name>/brand.json and merge over these defaults.",
+  "voice": {
+    "id": null,
+    "name": "Default Voice",
+    "model": "eleven_multilingual_v2",
+    "settings": {
+      "stability": 0.5,
+      "similarity_boost": 0.78,
+      "style": 0
+    }
+  },
+  "colors": {
+    "primary": "#0f172a",
+    "accent": "#3b82f6",
+    "background": "#ffffff",
+    "text": "#0f172a",
+    "muted": "#64748b"
+  },
+  "fonts": {
+    "primary": "Inter",
+    "display": "Impact, 'Arial Black', 'Helvetica Neue', sans-serif",
+    "weights": [400, 500, 600, 700]
+  },
+  "logo_path": null,
+  "tone": "Clean modern default. Grounded, conversational, no jargon."
+}
