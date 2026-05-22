@@ -64,6 +64,7 @@ runs/<slug>/                per-render workspace
   metadata.json             cost + timing per service
 templates/<name>/           Remotion compositions (TSX)
   hero-16x9/                DEFAULT: horizontal 4K
+  pod-9x16/                 Vertical 9:16 for Reels/Shorts/LinkedIn; supports captions + editorial 16:9-in-9:16 framing
 assets-library/
   brand/<brand-name>/       per-brand identities
   brand/<brand-name>/brand.json
@@ -209,6 +210,9 @@ The original setup spec at `docs/video-studio-setup.md` was written assuming:
 2. **Default video model: "Kling default, Veo for hero".** Reality: Seedance 2.0 is a better default (cost-per-quality). Veo is opt-in for hero shots.
 3. **Single-brand workspace.** Reality: multi-brand. Root brand.json is defaults; real brands live in `assets-library/brand/<name>/`.
 4. **Modal FLUX wired into lib/assets.ts.** Reality: not needed today. Higgsfield exposes FLUX.2 directly as `model: "flux_2"`, alongside Nano Banana Pro, GPT Image 2, Seedream, Soul V2, and others. `lib/assets.ts` routes all image gen through Higgsfield. The Modal skill describes the pattern for when self-hosted FLUX makes sense (cheaper at volume); until then, `source: "modal-flux"` throws a clear error pointing the user to `source: "higgsfield"` with `model: "flux_2"`.
+5. **`pod-9x16` template ships alongside `hero-16x9`.** Original spec implied a single default template. Reality: `pod-9x16` is the default for vertical social-native videos (Reels / Shorts / LinkedIn). Template selection is per-brief in scenes.json `template` field.
+6. **Captions are first-class.** Original spec had no captions concept. Reality: `scenesSchema` has an optional `captions[]` field and `templates/pod-9x16/components/Captions.tsx` renders them. Generation pipeline: whisper → phrase grouping. See Lessons § Captions and editorial mixed-aspect framing.
+7. **Library music is wired.** Original spec assumed all music was ElevenLabs-generated. Reality: `music.source: "library"` accepts any local file path (typical workflow: yt-dlp + ffmpeg slice into `assets-library/music/<slug>-music.mp3`). Library music gets the same loudnorm + fade chain in `lib/audio.ts` as ElevenLabs music.
 
 ## API endpoints and versions confirmed (2026-05-18)
 
@@ -286,6 +290,12 @@ When a user arrives with a fragment ("I want a hero for X"), default to walking 
 - Cost JSON shape: `{"credits": int, "credits_exact": float}`. Trust `credits_exact` for accurate per-job cost.
 - **Video clip jobs MUST be serialized**, not parallelized. Higgsfield Plus rejects too-many-parallel video jobs with `"not_enough_credits"` even when balance is plenty. Images can still parallel; only clips need single-file processing. `lib/assets.ts` handles this automatically.
 - NSFW filter false positives are common and trigger refunds. Don't take rejections personally; rewrite the prompt avoiding the documented triggers (all-caps, "pulsing", "transforming", "chaotic", direct person+age+action) and retry.
+
+### Captions and editorial mixed-aspect framing (pod-9x16)
+
+- Captions are first-class. Set `scenes.captions[]` as `{start, end, lines: string[]}` objects. The `pod-9x16` template's `Captions.tsx` component renders a 12% bottom subtitle bar (Ink 88% opacity, 16px radius, Inter 500 ~45pt Chalk) with 80ms fade-in / 120ms fade-out. Generate timing from a rendered VO: `python3 -c "import whisper; m = whisper.load_model('base'); print(m.transcribe(path, word_timestamps=True))"`, then group segments into phrases (max 2 lines, ~38 chars/line, break on commas near midpoint).
+- For mixed-aspect cuts in `pod-9x16` (horizontal library clips + vertical Seedance clips in the same 9:16 video), `LibraryClipScene.tsx` ships an editorial layout: Ink background, Ember caps eyebrow (driven by `overlay_text`), 16:9 clip centered with thin Ember hairline border and 16px rounded corners. Don't revert to `objectFit: cover` — it center-crops the horizontal context out.
+- Remotion `<AbsoluteFill>` defaults to `flexDirection: column`. When overriding flex layout, set `flexDirection` explicitly — `alignItems` / `justifyContent` map to cross/main axis inversely from a default row container.
 
 ## Constraints
 

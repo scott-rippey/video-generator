@@ -199,6 +199,13 @@ export type Scene = z.infer<typeof sceneSchema>;
 
 // ---------- Full scenes.json ----------
 
+export const captionSchema = z.object({
+  start: z.number().min(0),
+  end: z.number().positive(),
+  lines: z.array(z.string().min(1)).min(1).max(3),
+});
+export type Caption = z.infer<typeof captionSchema>;
+
 export const scenesSchema = z.object({
   slug: z
     .string()
@@ -210,6 +217,7 @@ export const scenesSchema = z.object({
   voiceover: voiceoverSchema,
   music: musicSchema,
   scenes: z.array(sceneSchema).min(1),
+  captions: z.array(captionSchema).optional(),
 });
 
 export type Scenes = z.infer<typeof scenesSchema>;
