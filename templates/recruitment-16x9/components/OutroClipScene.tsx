@@ -13,8 +13,9 @@ interface Props {
 }
 
 /**
- * Plays a library video with its own audio. Used for a user-supplied outro MP4
- * that carries its own logo + music. Distinct from `library-clip` which always mutes.
+ * Plays a library video with its own audio. Optional scene type — used only when
+ * the brief includes a user-supplied closing video (logo + music). Distinct from
+ * `library-clip` which always mutes.
  */
 export const OutroClipScene: React.FC<Props> = ({ scene, assetMap }) => {
   const frame = useCurrentFrame();

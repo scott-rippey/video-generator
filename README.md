@@ -19,6 +19,8 @@ Built to be driven through conversation, not pipeline operation. You arrive with
 | (Optional) Self-hosted FLUX, SadTalker | [Modal](https://modal.com/) | Free $30/mo credit |
 | Render | [Remotion](https://www.remotion.dev/) 4.x | Free, local CPU |
 | Audio leveling | FFmpeg 8.x | Free |
+| Word-level VO transcription | [whisper.cpp](https://github.com/ggerganov/whisper.cpp) (`whisper-cli`) | Free, local |
+| Pixel-precise UI measurement | Python + [Pillow](https://pillow.readthedocs.io/) | Free, local |
 | Orchestration | TypeScript + tsx | Free |
 
 ## Quickstart
@@ -34,6 +36,8 @@ Built to be driven through conversation, not pipeline operation. You arrive with
 > **Note**: FFmpeg, whisper.cpp, and Python (with Pillow for pixel-precise UI measurement) are used internally by the pipeline. Claude Code will check for them on first run and install via Homebrew / pip if missing. You don't have to set them up by hand.
 
 **Setup**
+
+> **Easiest path: just open the repo in Claude Code and say *"finish the setup."*** Claude will walk through each step interactively — clone tools via Homebrew, install JS deps, install the Higgsfield skills, prompt you for ElevenLabs / Higgsfield credentials, and verify the pipeline works. The manual commands below are the same steps if you'd rather run them yourself.
 
 ```bash
 # 1. Clone
@@ -59,7 +63,8 @@ claude
 
 # 7. Inside Claude Code, walk through the setup spec
 # Tell Claude: "Read docs/video-studio-setup.md and finish any pending setup."
-# It will check your env, voices, brand defaults, and confirm the pipeline works.
+# It will check your env, voices, brand defaults, install any missing local tools
+# (FFmpeg / whisper.cpp / Python+Pillow), and confirm the pipeline works.
 ```
 
 **First render**
@@ -92,7 +97,7 @@ Output resolution does NOT affect generation time. A clip is the same cost wheth
 ## Templates included
 
 - **`hero-16x9`** — Ships with: generated AI clips full-screen, voiceover, animated text overlays, lower-thirds, library clips, split-screen, generated-image backgrounds. *Suggested uses: hero spots, product reveals, brand teasers, explainer openers.*
-- **`recruitment-16x9`** — Ships with: screenshot pans with multi-stage motion + circle-glow callouts, animated form-fills with typed input + typing SFX, phone chat mockups with highlighted phrases, close-card with optional faded background clip + intro delay, outro clip with embedded audio. *Suggested uses: any video that needs to show real UI — recruitment, product walkthroughs, feature demos, launch videos, onboarding spots, "how it works" pieces.*
+- **`recruitment-16x9`** — Ships with these scene types: screenshot pans with multi-stage motion + circle-glow callouts, animated form-fills with typed input + typing SFX, phone chat mockups with highlighted phrases, close-card CTA with optional faded background clip + intro delay, and an `outro-clip` scene type that plays a user-supplied library video with its own audio (optional). *Suggested uses: any video that needs to show real UI — recruitment, product walkthroughs, feature demos, launch videos, onboarding spots, "how it works" pieces.*
 
 Both are extensible. The capabilities above are each template's **innate / out-of-the-box** scene types — you can always add new scene types, primitives, or motion effects to either one as a brief evolves. The "suggested uses" are downstream of what each ships with; if your brief overlaps either capability set, that template is a fine starting point regardless of category. Scaffold a brand-new template via `/template <name>` only when neither's built-in scene set is a good base to extend.
 

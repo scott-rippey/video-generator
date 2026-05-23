@@ -26,6 +26,44 @@ Without dumping context unprompted, load these quietly so you're ready:
 
 If something jumps out (a brief that's been sitting unrendered for a while, a costly recent render, a memory that contradicts what you're about to suggest), surface it before going far.
 
+## First-time local setup
+
+When a user opens this repo for the first time and asks for help getting set up (e.g. "finish the setup" or "set this up for me"), walk them through these checks and installs in order. Each step should report what's already present vs what needs to be installed before running anything destructive.
+
+**1. Local CLI tools** (install via Homebrew on macOS, apt/dnf on Linux). The user does NOT have to install these by hand — offer to install via Claude Code, then run the install:
+
+- **FFmpeg 8.x** — audio leveling, silence generation, concat. Check: `ffmpeg -version`. Install: `brew install ffmpeg`.
+- **whisper.cpp** (`whisper-cli`) — word-level VO transcription for scene cut alignment. Check: `which whisper-cli`. Install: `brew install whisper-cpp`. Also needs a model file: download `ggml-small.en.bin` (or larger) into `~/.whisper-models/` from https://huggingface.co/ggerganov/whisper.cpp.
+- **Python 3 + Pillow** — pixel-precise UI measurement for `ui-form-fill` covers. Check: `python3 -c "from PIL import Image; print('ok')"`. Install Pillow: `python3 -m pip install --user pillow`.
+
+**2. Node + JS deps**
+
+- Node.js 20+ required. Check: `node --version`.
+- `npm install` to install Remotion, undici, zod, etc.
+
+**3. Higgsfield CLI + skills**
+
+- Install the Higgsfield Claude Code skills (provides `higgsfield-generate`, `higgsfield-soul-id`, `higgsfield-product-photoshoot`, `higgsfield-marketplace-cards`): `npx skills add higgsfield-ai/skills`. Skills are pinned via `skills-lock.json`.
+- Authenticate the CLI (this is interactive, opens a browser): `higgsfield auth login`. Verify with `higgsfield account status` — should show plan + credit balance.
+- The Higgsfield CLI handles its own auth in `~/.higgsfield/` — there is NO `HIGGSFIELD_API_KEY` in `.env`. Do not add one.
+
+**4. API credentials in `.env`**
+
+- Copy `.env.example` → `.env`.
+- Set `ELEVENLABS_API_KEY`. Help the user find it: ElevenLabs dashboard → Profile + API Keys.
+- Modal is optional (not currently wired). If they want it later: `modal token new`.
+
+**5. Voice setup**
+
+- Open `brand.json` and confirm `voice.id`. If they don't have a voice yet, walk them through cloning their voice in ElevenLabs (or picking a library voice), then paste the voice id into `brand.json`.
+- Run `/voice` inside Claude Code to test the current voice and verify the pipeline.
+
+**6. Smoke test**
+
+- Run `/video 000-smoke-test` to verify everything works end to end (~$0.10 of credits).
+
+If a check fails at any step, surface the exact error and the install command. Don't continue past a failed step.
+
 ## Every video is its own thing
 
 Don't pattern-match to whatever the previous video looked like. Each conversation starts fresh: ask what kind of video this is (hero, talking-head, tutorial, social ad, narrative, product demo, podcast intro), what format (horizontal or vertical, 4K or 1080p), length, audience, and vibe. Music and voiceover are the only near-constants; everything else (scenes, text overlays, structure, pacing, tone) is fluid.
@@ -33,7 +71,7 @@ Don't pattern-match to whatever the previous video looked like. Each conversatio
 Two included templates, pick by **what each one ships with**:
 
 - **`hero-16x9`** — Ships with: generated AI clips full-screen, voiceover, animated text overlays, lower-thirds, library clips, split-screen, generated-image backgrounds. *Suggested uses: hero spots, product reveals, brand teasers, explainer openers.*
-- **`recruitment-16x9`** — Ships with: screenshot pans with multi-stage keyframe motion + circle-glow callouts, animated form-fills with typed input and typing SFX, phone chat mockups with highlighted phrases, close-card with optional faded background clip + configurable intro delay, outro clip with embedded audio. *Suggested uses: recruitment, product walkthroughs, feature demos, launch videos, onboarding spots, "how it works" pieces — anything that needs to show real UI.*
+- **`recruitment-16x9`** — Ships with these scene types: screenshot pans with multi-stage keyframe motion + circle-glow callouts, animated form-fills with typed input and typing SFX, phone chat mockups with highlighted phrases, close-card with optional faded background clip + configurable intro delay, and an `outro-clip` scene type that plays a user-supplied library video with its own audio (optional). *Suggested uses: recruitment, product walkthroughs, feature demos, launch videos, onboarding spots, "how it works" pieces — anything that needs to show real UI.*
 
 Both templates are extensible. The lists above are each one's **innate / out-of-the-box** scene types — you can always add new scene types, primitives, or motion effects to either template as a brief evolves. The suggested uses are downstream of what ships built-in. Match the brief to whichever template's starting set overlaps best; only scaffold a brand-new template (`/template <name>`) when neither's built-in scene set is a useful base to extend.
 
