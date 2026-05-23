@@ -273,9 +273,28 @@ export async function runVideo(opts: CliOptions): Promise<RunVideoResult> {
 
   const generationStart = Date.now();
   console.log('[orchestrator] === GENERATION PHASE (cloud, parallel) ===');
-  const skipClipGen = existsSync(assetsExistMarker);
-  if (skipClipGen) {
-    console.log('[orchestrator] per-scene assets cached; voice/music will refresh if files were deleted');
+  // Validate the marker: even if it exists, regen if any cached asset file
+  // is missing on disk (user deleted one to iterate on a single scene).
+  // generateSceneAssets is per-scene-cached internally, so this only regens
+  // the missing scenes, not the whole batch.
+  let skipClipGen = false;
+  if (existsSync(assetsExistMarker)) {
+    try {
+      const cachedMap = JSON.parse(
+        readFileSync(assetsExistMarker, 'utf8'),
+      ) as AssetMap;
+      const allExist = Object.values(cachedMap).every((r) =>
+        existsSync(r.path),
+      );
+      if (allExist) {
+        skipClipGen = true;
+        console.log('[orchestrator] per-scene assets cached; voice/music will refresh if files were deleted');
+      } else {
+        console.log('[orchestrator] cache marker stale (one or more asset files missing); regenerating only the missing scenes');
+      }
+    } catch {
+      console.log('[orchestrator] cache marker unreadable; regenerating');
+    }
   }
   const [voiceover, music, am] = await Promise.all([
     generateVoiceover(opts.slug, scenes),

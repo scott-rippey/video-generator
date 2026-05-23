@@ -50,6 +50,30 @@ function chunkScript(script: string, maxChars = 2500): string[] {
   return chunks;
 }
 
+// `eleven_multilingual_v2` only weakly honors <break> SSML tags (gives ~270ms
+// regardless of requested duration). To make break tags reliable we split the
+// script on break tags, TTS each text segment separately, generate real silence
+// via ffmpeg between, and concat. Result: requested break time is honored exactly.
+type ScriptPart =
+  | { type: 'text'; text: string }
+  | { type: 'silence'; ms: number };
+
+function parseScriptParts(script: string): ScriptPart[] {
+  const parts: ScriptPart[] = [];
+  const breakRe = /<break\s+time\s*=\s*"(\d+)ms"\s*\/?\s*>/gi;
+  let lastIdx = 0;
+  let match: RegExpExecArray | null;
+  while ((match = breakRe.exec(script)) !== null) {
+    const before = script.slice(lastIdx, match.index).trim();
+    if (before) parts.push({ type: 'text', text: before });
+    parts.push({ type: 'silence', ms: parseInt(match[1]!, 10) });
+    lastIdx = match.index + match[0].length;
+  }
+  const after = script.slice(lastIdx).trim();
+  if (after) parts.push({ type: 'text', text: after });
+  return parts;
+}
+
 // ---------- Voiceover ----------
 
 export interface VoiceoverResult {
@@ -85,55 +109,113 @@ export async function generateVoiceover(slug: string, scenes: Scenes): Promise<V
   // Iterating on audio post-processing is free this way.
   let charactersUsed = 0;
   if (!existsSync(rawPath)) {
-    const chunks = chunkScript(voiceover.script);
-    const chunkPaths: string[] = [];
-    console.log(`[audio] voiceover: ${voiceover.script.length} chars, ${chunks.length} chunk(s)`);
-    for (let i = 0; i < chunks.length; i++) {
-      const chunk = chunks[i]!;
-      const chunkPath = resolve(dir, `voiceover.chunk-${i}.mp3`);
-      const url = `${env.elevenlabs.ttsEndpoint}/${voiceover.voice_id}?output_format=mp3_44100_128`;
-      const body = {
-        text: chunk,
-        model_id: voiceover.model_id,
-        voice_settings: voiceover.settings ?? {
-          stability: 0.5,
-          similarity_boost: 0.78,
-          style: 0,
-        },
-      };
-      const res = await request(url, {
-        method: 'POST',
-        headers: {
-          'xi-api-key': env.elevenlabs.apiKey,
-          'content-type': 'application/json',
-          accept: 'audio/mpeg',
-        },
-        body: JSON.stringify(body),
-      });
-      if (res.statusCode !== 200) {
-        const text = await res.body.text();
-        throw new Error(`ElevenLabs TTS chunk ${i} failed (${res.statusCode}): ${text}`);
+    // 1. Split script on <break> tags into text/silence parts.
+    // 2. Further chunk long text parts (ElevenLabs ~2500-char limit).
+    // 3. Generate audio for each part: TTS for text, ffmpeg anullsrc for silence.
+    // 4. Concat all parts in order to produce raw voiceover.
+    const parts = parseScriptParts(voiceover.script);
+    const partPaths: string[] = [];
+    const totalTextChars = parts
+      .filter((p): p is { type: 'text'; text: string } => p.type === 'text')
+      .reduce((sum, p) => sum + p.text.length, 0);
+    const silenceCount = parts.filter((p) => p.type === 'silence').length;
+    console.log(
+      `[audio] voiceover: ${totalTextChars} text chars, ${silenceCount} <break> tag(s), ${parts.length} parts`,
+    );
+
+    let partIdx = 0;
+    for (const part of parts) {
+      if (part.type === 'silence') {
+        const silencePath = resolve(dir, `voiceover.part-${partIdx}.silence.mp3`);
+        await ffmpeg(
+          [
+            '-y',
+            '-f',
+            'lavfi',
+            '-i',
+            'anullsrc=r=44100:cl=stereo',
+            '-t',
+            (part.ms / 1000).toString(),
+            '-c:a',
+            'libmp3lame',
+            '-b:a',
+            '128k',
+            silencePath,
+          ],
+          `silence ${part.ms}ms`,
+        );
+        partPaths.push(silencePath);
+        console.log(`[audio] voiceover part ${partIdx + 1}/${parts.length} silence ${part.ms}ms`);
+        partIdx++;
+        continue;
       }
-      const buf = Buffer.from(await res.body.arrayBuffer());
-      writeFileSync(chunkPath, buf);
-      chunkPaths.push(chunkPath);
-      console.log(`[audio] voiceover chunk ${i + 1}/${chunks.length} written (${buf.length} bytes)`);
+      // Text part — may need further chunking for very long segments.
+      const textChunks = chunkScript(part.text);
+      for (const chunk of textChunks) {
+        const chunkPath = resolve(dir, `voiceover.part-${partIdx}.mp3`);
+        const url = `${env.elevenlabs.ttsEndpoint}/${voiceover.voice_id}?output_format=mp3_44100_128`;
+        const body = {
+          text: chunk,
+          model_id: voiceover.model_id,
+          voice_settings: voiceover.settings ?? {
+            stability: 0.5,
+            similarity_boost: 0.78,
+            style: 0,
+          },
+        };
+        const res = await request(url, {
+          method: 'POST',
+          headers: {
+            'xi-api-key': env.elevenlabs.apiKey,
+            'content-type': 'application/json',
+            accept: 'audio/mpeg',
+          },
+          body: JSON.stringify(body),
+        });
+        if (res.statusCode !== 200) {
+          const text = await res.body.text();
+          throw new Error(`ElevenLabs TTS part ${partIdx} failed (${res.statusCode}): ${text}`);
+        }
+        const buf = Buffer.from(await res.body.arrayBuffer());
+        writeFileSync(chunkPath, buf);
+        partPaths.push(chunkPath);
+        console.log(
+          `[audio] voiceover part ${partIdx + 1}/${parts.length} text ${chunk.length} chars (${buf.length} bytes)`,
+        );
+        partIdx++;
+      }
     }
 
-    if (chunkPaths.length === 1) {
-      copyFileSync(chunkPaths[0]!, rawPath);
+    if (partPaths.length === 1) {
+      copyFileSync(partPaths[0]!, rawPath);
     } else {
       const listFile = resolve(dir, 'voiceover.concat.txt');
       writeFileSync(
         listFile,
-        chunkPaths.map((p) => `file '${p.replace(/'/g, "'\\''")}'`).join('\n'),
+        partPaths.map((p) => `file '${p.replace(/'/g, "'\\''")}'`).join('\n'),
       );
+      // Re-encode (not -c copy) because ElevenLabs MP3s and ffmpeg-generated
+      // silence MP3s have different encoder parameters; concat-demuxer with
+      // -c copy silently drops content when those mismatch.
       await ffmpeg(
-        ['-y', '-f', 'concat', '-safe', '0', '-i', listFile, '-c', 'copy', rawPath],
+        [
+          '-y',
+          '-f',
+          'concat',
+          '-safe',
+          '0',
+          '-i',
+          listFile,
+          '-c:a',
+          'libmp3lame',
+          '-b:a',
+          '192k',
+          rawPath,
+        ],
         'voiceover concat',
       );
     }
-    charactersUsed = voiceover.script.length;
+    charactersUsed = totalTextChars;
   } else {
     console.log(`[audio] voiceover.raw.mp3 cached; re-applying leveller without TTS API call`);
   }

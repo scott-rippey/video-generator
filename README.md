@@ -6,15 +6,15 @@ Built to be driven through conversation, not pipeline operation. You arrive with
 
 ## What it produces
 
-- 5-60 second hero / explainer / brand videos.
-- 4K horizontal, 4K vertical, 1080p variants from the same scenes.json (see `docs/overview.md`).
-- AI voiceover, AI music bed, AI clips, AI imagery, text overlays, all composited in Remotion.
+- 5-60 second hero / explainer / brand / UI-walkthrough videos.
+- 4K horizontal, 4K vertical, 1080p variants from the same scenes.json.
+- AI voiceover (with reliable client-side `<break>` tag pauses), AI music bed, AI clips, AI imagery, animated UI overlays, per-scene sound effects, all composited in Remotion.
 
 ## Stack
 
 | Layer | Tool | Cost |
 |---|---|---|
-| Voice + Music | [ElevenLabs](https://elevenlabs.io/) | Paid plan |
+| Voice + Music + SFX | [ElevenLabs](https://elevenlabs.io/) | Paid plan |
 | Image + Clip generation | [Higgsfield](https://higgsfield.ai/) via official CLI + skill | Plus plan $49/mo, 1000 credits |
 | (Optional) Self-hosted FLUX, SadTalker | [Modal](https://modal.com/) | Free $30/mo credit |
 | Render | [Remotion](https://www.remotion.dev/) 4.x | Free, local CPU |
@@ -27,10 +27,11 @@ Built to be driven through conversation, not pipeline operation. You arrive with
 
 - macOS or Linux (Windows untested)
 - Node.js 20+
-- FFmpeg 8.x (`brew install ffmpeg`)
 - A Claude Code subscription
 - An [ElevenLabs](https://elevenlabs.io/) account with API key
 - A [Higgsfield](https://higgsfield.ai/) account (Plus plan recommended)
+
+> **Note**: FFmpeg, whisper.cpp, and Python (with Pillow for pixel-precise UI measurement) are used internally by the pipeline. Claude Code will check for them on first run and install via Homebrew / pip if missing. You don't have to set them up by hand.
 
 **Setup**
 
@@ -83,10 +84,17 @@ Claude will walk you through concept → beats → scene-by-scene voice/visuals 
 
 Two distinct phases:
 
-1. **Generation phase** (cloud, parallel, ~1-5 min): ElevenLabs voice + music, Higgsfield image + clip jobs all fire in parallel.
+1. **Generation phase** (cloud, parallel, ~1-5 min): ElevenLabs voice + music + SFX, Higgsfield image + clip jobs all fire in parallel.
 2. **Render phase** (local, Remotion, ~2-12 min depending on resolution): Stitches the generated assets into the final MP4.
 
 Output resolution does NOT affect generation time. A clip is the same cost whether the final is 4K or 1080p. **Render at 1080p while iterating, render at 4K when shipping** (`--resolution 4k|1080p` flag).
+
+## Templates included
+
+- **`hero-16x9`**: cinematic hero / explainer / brand videos. Generated clips + voiceover + text overlays. Best for landing-page hero spots and product reveals.
+- **`recruitment-16x9`**: UI-focused brand videos (recruitment OR product). Screenshot pans, animated form-fills with typing SFX, phone-chat mockups with highlighted phrases, close-card with optional faded background clip + intro delay. Best for B2B/SaaS recruitment, "what's it like to work with us" videos, product walkthroughs / launches, feature demos, and onboarding spots.
+
+When neither fits, scaffold a new template via `/template <name>`.
 
 ## Folder layout
 
@@ -94,8 +102,12 @@ Output resolution does NOT affect generation time. A clip is the same cost wheth
 briefs/             INBOX: drop <slug>.md briefs here
 videos/             OUTBOX: <slug>.mp4 and variants land here
 runs/<slug>/        per-render workspace (scenes.json, audio, assets, metadata)
-templates/          Remotion compositions (hero-16x9 included)
-assets-library/     per-brand identities, music, stock B-roll
+templates/          Remotion compositions
+  hero-16x9/        cinematic hero / explainer / brand
+  recruitment-16x9/ UI-focused: form-fills, phone chat, close-card
+assets-library/     per-brand identities, music, stock B-roll, sfx
+  brand/<name>/     per-project brand
+  sfx/              shared sound effects (whoosh, typing, etc.)
 .claude/            slash commands + skills
 lib/                TypeScript orchestrator (config, scenes, audio, assets, render)
 prompts/            brief → scenes.json expansion prompts
@@ -143,3 +155,47 @@ The skills layer started as a fork of [digitalsamba/claude-code-video-toolkit](h
 ## License
 
 [MIT](LICENSE) © 2026 Scott Rippey
+
+---
+
+## Versions
+
+### v2 — 2026-05-23
+
+**New templates**
+- `recruitment-16x9` — UI-focused brand video template with five new scene types: `ui-static-reveal` (screenshot pan + zoom + circle-glow highlights), `ui-form-fill` (animated typing into form fields with typing SFX), `phone-mockup-chat` (animated chat thread with highlighted phrases), `close-card` (CTA with optional faded background clip), `outro-clip` (library video with embedded audio).
+
+**Voiceover / audio**
+- Client-side `<break time="Nms"/>` tag handling. `eleven_multilingual_v2` ignores SSML breaks (gives ~270ms regardless of value), so the studio now splits the script on break tags, TTSs each text segment, generates real silence via `ffmpeg anullsrc`, and concatenates with re-encode. Break times are honored exactly.
+- Voiceover concat fixed (`libmp3lame` re-encode instead of `-c copy`) to prevent silently-dropped content when MP3 encoder params differ between segments.
+
+**Per-scene SFX**
+- New `sfx` field on every scene: `{ file, at_seconds, duration_seconds?, volume }`. Files staged into publicDir mirroring their `assets-library/sfx/*` path. Composition renders a Sequence per entry.
+- `at_seconds` may be **negative** for pre-roll (so a whoosh's transient lands AT motion start, not after it).
+- `duration_seconds` clips the SFX via `durationInFrames` — useful for reusing one typing-loop file across multiple field-fill events of different durations.
+
+**Close-card improvements**
+- `intro_delay_seconds`: delay before title/details animate in (lets the background settle).
+- `background_clip_fade_out_seconds`: fade the reused-clip background's opacity to 0 over the last N seconds. Eliminates the frozen-last-frame artifact when the clip is shorter than the scene.
+
+**UI form fill scenes**
+- `FieldFill` now treats `font_size` and `padding_x` as natural-image pixels (scaled by `sx` at render time, matching `x/y/width/height`). One set of coords renders identically at 1080p and 4K.
+- Pixel-precise PIL workflow documented in CLAUDE.md for measuring input box borders before authoring covers.
+
+**Circle-glow highlights**
+- New `padding` field on highlights — set to `0` to make the ring sit tight against a card edge (default auto-padding adds breathing room).
+
+**Orchestrator**
+- `.complete` marker bug fixed. Marker existence alone no longer skips regeneration — now validates that all cached asset files actually exist on disk. Deleting a single asset MP4 to iterate on one scene now works as documented.
+
+**Documentation**
+- New CLAUDE.md lessons: "Voiceover scripts: use SSML break tags by default", "Per-scene SFX", "UI form fill scenes: measure pixel-precisely", "Motion: push-in tops out at ~8% zoom".
+
+### v1 — 2026-05-18
+
+- Initial Video Studio release.
+- `hero-16x9` template with 6 scene-type components (text-overlay, fullscreen-clip, lower-third, library-clip, split-screen, generated-image-bg).
+- Higgsfield CLI + skill integration (Seedance 2.0 default).
+- ElevenLabs voiceover + music with loudnorm/dynaudnorm leveling.
+- TypeScript orchestrator with cost-gating, per-scene asset caching, audio raw-cache for free post-processing iteration.
+- Five slash commands: `/video`, `/brief`, `/scene-review`, `/template`, `/voice`.

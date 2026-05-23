@@ -108,6 +108,28 @@ function stagePublicDir(
     assetMap[sceneId] = `assets/${fileName}`;
   };
 
+  // SFX files (any scene type can declare sfx entries)
+  const stagedSfx = new Set<string>();
+  const stageSfx = (filePath: string): void => {
+    if (stagedSfx.has(filePath)) return;
+    const src = resolve(WORKSPACE_ROOT, filePath);
+    if (!existsSync(src)) {
+      throw new Error(`SFX file not found: ${src}`);
+    }
+    const stagedRel = filePath.startsWith('assets-library/')
+      ? filePath.slice('assets-library/'.length)
+      : basename(filePath);
+    const dst = resolve(publicDir, stagedRel);
+    mkdirSync(resolve(dst, '..'), { recursive: true });
+    copyFileSync(src, dst);
+    stagedSfx.add(filePath);
+  };
+  for (const scene of scenes.scenes) {
+    for (const s of scene.sfx ?? []) {
+      stageSfx(s.file);
+    }
+  }
+
   for (const scene of scenes.scenes) {
     if (scene.type === 'library-clip') {
       stageLibrary(scene.id, scene.clip.file);
@@ -126,6 +148,10 @@ function stagePublicDir(
         }
       }
     } else if (scene.type === 'fullscreen-clip' && scene.clip.type === 'library-clip') {
+      stageLibrary(scene.id, scene.clip.file);
+    } else if (scene.type === 'ui-static-reveal' || scene.type === 'ui-form-fill') {
+      stageLibrary(scene.id, scene.image.file);
+    } else if (scene.type === 'outro-clip') {
       stageLibrary(scene.id, scene.clip.file);
     }
   }

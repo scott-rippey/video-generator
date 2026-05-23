@@ -30,7 +30,12 @@ If something jumps out (a brief that's been sitting unrendered for a while, a co
 
 Don't pattern-match to whatever the previous video looked like. Each conversation starts fresh: ask what kind of video this is (hero, talking-head, tutorial, social ad, narrative, product demo, podcast intro), what format (horizontal or vertical, 4K or 1080p), length, audience, and vibe. Music and voiceover are the only near-constants; everything else (scenes, text overlays, structure, pacing, tone) is fluid.
 
-The included `hero-16x9` template and the prompt examples lean toward branded cinematic hero videos because that's the format the studio was first built around. That's a starting point, not a constraint. When a brief calls for a different format, scaffold a new template (`/template <name>`) instead of bending hero-16x9 into something it's not.
+Two included templates, pick the one that fits:
+
+- **`hero-16x9`**: cinematic hero / explainer / brand videos. Generated clips + voiceover + text overlays in a horizontal 4K composition. Best for landing-page hero spots, pitch openers, product reveals.
+- **`recruitment-16x9`**: UI-focused brand video, equally suited for recruitment OR product. Designed for showing real product UI — screenshot pans, animated form-fills with typing SFX, phone-chat mockups with highlighted phrases, close-card with optional faded background clip + intro delay. Best for B2B / SaaS / brokerage / agency recruitment AND product walkthroughs, feature demos, launch videos, onboarding spots.
+
+When a brief calls for something neither covers, scaffold a new template (`/template <name>`).
 
 ## How the pipeline works
 
@@ -63,7 +68,8 @@ runs/<slug>/                per-render workspace
   render/out.mp4
   metadata.json             cost + timing per service
 templates/<name>/           Remotion compositions (TSX)
-  hero-16x9/                DEFAULT: horizontal 4K
+  hero-16x9/                cinematic hero / explainer / brand
+  recruitment-16x9/         UI-focused: form-fills, phone chat, close-card
 assets-library/
   brand/<brand-name>/       per-brand identities
   brand/<brand-name>/brand.json
@@ -245,6 +251,29 @@ When the voiceover ends a few seconds before the last visual card and the visual
 - The speed change requires fresh TTS — delete both `voiceover.mp3` AND `voiceover.raw.mp3` after editing scenes.json, then re-run. Music + per-scene clip caches stay intact (no Higgsfield credits, ~30s ElevenLabs call).
 - First lever to reach for when the user says "the voice ends a bit before the last card" or "keep the same flow with the timing of the videos." Re-cutting scenes is the second-best option; it changes more state and risks misaligning other beats.
 
+### Voiceover scripts: use SSML break tags by default
+
+ElevenLabs `eleven_multilingual_v2` does NOT reliably honor SSML `<break>` tags — sending `<break time="1500ms"/>` only produces ~270ms of actual silence. To make pauses precise, the studio handles break tags **client-side**: `lib/audio.ts` splits the script on `<break>` tags, runs ElevenLabs TTS on each text segment, generates real silence via `ffmpeg anullsrc`, and concatenates with re-encode (not `-c copy`, which silently drops content when MP3 encoder params mismatch). Use break tags liberally — they get honored exactly.
+
+- `<break time="500ms"/>` to `<break time="3000ms"/>` for explicit pauses. Common values:
+  - `300-500ms`: brief beat between related ideas (close to a comma)
+  - `600-800ms`: deliberate beat before a CTA, between distinct thoughts, or after a callback/punchline
+  - `1000ms+`: dramatic pause; use sparingly
+- Place break tags **inside the script string** in scenes.json. Embed JSON-escape the quotes: `<break time=\"700ms\"/>`.
+- Where to apply by default: just before CTA lines ("So what are you missing out on?"), between dense list items, before a tone shift, and at the end of any line where the next visual cut needs a beat to land.
+- For separating two sentences in the SAME voiceover line (e.g. "Book your meeting. Today!"), splitting via `<break time="100ms"/>` between them gives you tighter control than relying on the period's natural pause.
+
+The cached `voiceover.mp3` AND `voiceover.raw.mp3` must both be deleted when changing the script (including adding/removing break tags) so the next render hits ElevenLabs fresh.
+
+### Per-scene SFX
+
+Any scene can declare an `sfx` array — each entry is `{ file, at_seconds, duration_seconds?, volume }`. The orchestrator stages SFX files into the publicDir mirroring their `assets-library/sfx/*` path, and Composition.tsx renders one `<Sequence><Audio/></Sequence>` per entry.
+
+- `at_seconds` may be **negative** to pre-roll the SFX before the scene begins. Useful when a whoosh should peak AT motion start instead of starting from there. Composition.tsx clamps `from` to ≥ 0 if negative offsets would push past frame 0.
+- `duration_seconds` optionally clips the SFX (via Sequence `durationInFrames`). Useful when reusing one long typing-loop file for multiple field-fill events of different lengths.
+- Volume 0-2 (max above 1 if you need to amplify a quiet source).
+- Generate effects via ElevenLabs `text_to_sound_effects` MCP tool and prefer **PCM 44.1kHz** output for cleanest results (Pro tier required). Re-encode to MP3 320kbps via ffmpeg for final delivery.
+
 ### Visual prompts: assume the model will hallucinate text
 
 - **Default to "no text on screens"** in any prompt that shows a monitor, dashboard, or UI. AI video models WILL generate garbage placeholder text otherwise.
@@ -252,6 +281,41 @@ When the voiceover ends a few seconds before the last visual card and the visual
 - For "looking at a dashboard" scenes, ask for `"only graphs and isolated numerical values, no text labels, no captions, no axis labels"`. Sometimes the model still injects text; in that case either (a) regenerate, (b) hold the camera further back so text is not legible, or (c) switch to a non-screen visual entirely.
 - For human-in-frame scenes, **group contexts are safer than solo shots** with the NSFW filter. Avoid specific ages and specific actions (`"a person in their 30s closing a laptop"` got false-positive NSFW-rejected; `"focused professionals in conversation around a wooden table"` passed).
 - All-caps emphasis in prompts (`"ABSOLUTELY NO TEXT"`) triggers Higgsfield's NSFW filter. Use lowercase even when you want to emphasize.
+
+### UI form fill scenes: measure pixel-precisely
+
+For `ui-form-fill` scenes (typed text overlaid on a form screenshot), the cover box that hides the form's existing value MUST fit inside the input box border. Even a 1-2px overlap covers the border line and visibly breaks the rounded-rectangle outline. The visible artifact when "bleeding" is the BROKEN BORDER, not a cover/background color mismatch — fixing the inset is the actual fix, not changing `cover_color`.
+
+**Don't eyeball measurements.** Use PIL to scan the source PNG: a vertical border is a column where >85% of y-rows in the box's interior are dark; icons (which look similar in a single-row scan) only fill 30-40% of rows.
+
+```python
+from PIL import Image
+img = Image.open("assets-library/.../form.png")
+def col_dark(x, y0, y1, t=253):
+    return sum(1 for y in range(y0, y1) if sum(img.getpixel((x, y))[:3])/3 < t)
+# Then scan x in expected box range; columns with col_dark > 0.85*(y1-y0) are borders.
+```
+
+Set the cover `x/y/width/height` to inset 1-2px inside the detected borders (anti-aliasing softens the outer pixel; the cover shouldn't touch it).
+
+`UiFormFillScene.tsx`'s `FieldFill` treats `font_size` and `padding_x` as natural-image pixels (scaled by `sx` at render time, matching `x/y/width/height`). Author every dimension in natural coords — one set of numbers renders identically at 1080p and 4K.
+
+### Motion: push-in tops out at ~8% zoom
+
+The `push-in` motion formula is `scale = 1 + intensity * 0.08`, so even intensity 1.0 only gives 8% zoom. For a perceptible zoom across a UI/screenshot scene, use explicit `keyframes`:
+
+```json
+"motion": {
+  "kind": "keyframes",
+  "easing": "ease-in-out",
+  "keyframes": [
+    { "t": 0, "scale": 1.0, "x": 0, "y": 0 },
+    { "t": 1.0, "scale": 1.18, "x": 0, "y": 0 }
+  ]
+}
+```
+
+`t: 0` and `t: 1.0` guarantee the zoom starts on the first frame and ends on the last frame with no ease-out settling before the cut. For circle-glow highlights, add `padding: 0` to make the ring hug a card edge tightly (default auto-padding adds breathing room).
 
 ### Workflow: scene-by-scene conversation BEFORE the brief
 
