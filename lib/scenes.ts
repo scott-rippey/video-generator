@@ -446,8 +446,10 @@ export const closeCardSceneSchema = z.object({
   intro_delay_seconds: z.number().min(0).default(0),
 });
 
-// outro-clip: library video with its own audio (unlike library-clip which mutes)
-// Used by: Beat 10 (Outro.mp4 with embedded music)
+// outro-clip: library video with its own audio (unlike library-clip which mutes).
+// Used by recruitment-16x9 / similar templates when the brief includes a
+// user-supplied closing video (logo + music). Optional — only present in scenes
+// that explicitly opt into it.
 export const outroClipSceneSchema = z.object({
   ...baseSceneFields,
   type: z.literal('outro-clip'),
