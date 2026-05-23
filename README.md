@@ -91,10 +91,10 @@ Output resolution does NOT affect generation time. A clip is the same cost wheth
 
 ## Templates included
 
-- **`hero-16x9`**: cinematic hero / explainer / brand videos. Generated clips + voiceover + text overlays. Best for landing-page hero spots and product reveals.
-- **`recruitment-16x9`**: UI-focused brand videos (recruitment OR product). Screenshot pans, animated form-fills with typing SFX, phone-chat mockups with highlighted phrases, close-card with optional faded background clip + intro delay. Best for B2B/SaaS recruitment, "what's it like to work with us" videos, product walkthroughs / launches, feature demos, and onboarding spots.
+- **`hero-16x9`** — Renders generated AI clips full-screen with voiceover and animated text overlays. Scene types: text-overlay, fullscreen-clip, lower-third, library-clip, split-screen, generated-image-bg. *Suggested uses: hero spots, product reveals, brand teasers, explainer openers.*
+- **`recruitment-16x9`** — Renders product UI: screenshot pans with multi-stage motion + circle-glow callouts, animated form-fills with typed input + typing SFX, phone chat mockups with highlighted phrases, close-card with optional faded background clip + intro delay, outro clip with embedded audio. Scene types: ui-static-reveal, ui-form-fill, phone-mockup-chat, close-card, outro-clip. *Suggested uses: any video that needs to show UI — recruitment, product walkthroughs, feature demos, launch videos, onboarding spots, "how it works" pieces.*
 
-When neither fits, scaffold a new template via `/template <name>`.
+These are starting points, not constraints. Anything you can render is fair game; the suggested uses are just where each template shines. When neither fits, scaffold a new template via `/template <name>`.
 
 ## Folder layout
 

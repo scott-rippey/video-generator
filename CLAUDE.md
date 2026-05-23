@@ -30,12 +30,12 @@ If something jumps out (a brief that's been sitting unrendered for a while, a co
 
 Don't pattern-match to whatever the previous video looked like. Each conversation starts fresh: ask what kind of video this is (hero, talking-head, tutorial, social ad, narrative, product demo, podcast intro), what format (horizontal or vertical, 4K or 1080p), length, audience, and vibe. Music and voiceover are the only near-constants; everything else (scenes, text overlays, structure, pacing, tone) is fluid.
 
-Two included templates, pick the one that fits:
+Two included templates, pick by **what the brief needs to render**:
 
-- **`hero-16x9`**: cinematic hero / explainer / brand videos. Generated clips + voiceover + text overlays in a horizontal 4K composition. Best for landing-page hero spots, pitch openers, product reveals.
-- **`recruitment-16x9`**: UI-focused brand video, equally suited for recruitment OR product. Designed for showing real product UI — screenshot pans, animated form-fills with typing SFX, phone-chat mockups with highlighted phrases, close-card with optional faded background clip + intro delay. Best for B2B / SaaS / brokerage / agency recruitment AND product walkthroughs, feature demos, launch videos, onboarding spots.
+- **`hero-16x9`** — Renders: generated AI clips full-screen, voiceover, animated text overlays, lower-thirds, library clips, split-screen, generated-image backgrounds. *Suggested uses: hero spots, product reveals, brand teasers, explainer openers.*
+- **`recruitment-16x9`** — Renders: screenshot pans with multi-stage keyframe motion + circle-glow callouts, animated form-fills with typed input and typing SFX, phone chat mockups with highlighted phrases, close-card with optional faded background clip + configurable intro delay, outro clip with embedded audio. *Suggested uses: recruitment, product walkthroughs, feature demos, launch videos, onboarding spots, "how it works" pieces — anything that needs to show real UI.*
 
-When a brief calls for something neither covers, scaffold a new template (`/template <name>`).
+The use cases are just suggestions. Match the brief to whichever set of CAPABILITIES it needs and use that template. If the brief needs capabilities neither covers, scaffold a new template (`/template <name>`).
 
 ## How the pipeline works
 
