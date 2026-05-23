@@ -91,10 +91,10 @@ Output resolution does NOT affect generation time. A clip is the same cost wheth
 
 ## Templates included
 
-- **`hero-16x9`** — Renders generated AI clips full-screen with voiceover and animated text overlays. Scene types: text-overlay, fullscreen-clip, lower-third, library-clip, split-screen, generated-image-bg. *Suggested uses: hero spots, product reveals, brand teasers, explainer openers.*
-- **`recruitment-16x9`** — Renders product UI: screenshot pans with multi-stage motion + circle-glow callouts, animated form-fills with typed input + typing SFX, phone chat mockups with highlighted phrases, close-card with optional faded background clip + intro delay, outro clip with embedded audio. Scene types: ui-static-reveal, ui-form-fill, phone-mockup-chat, close-card, outro-clip. *Suggested uses: any video that needs to show UI — recruitment, product walkthroughs, feature demos, launch videos, onboarding spots, "how it works" pieces.*
+- **`hero-16x9`** — Ships with: generated AI clips full-screen, voiceover, animated text overlays, lower-thirds, library clips, split-screen, generated-image backgrounds. *Suggested uses: hero spots, product reveals, brand teasers, explainer openers.*
+- **`recruitment-16x9`** — Ships with: screenshot pans with multi-stage motion + circle-glow callouts, animated form-fills with typed input + typing SFX, phone chat mockups with highlighted phrases, close-card with optional faded background clip + intro delay, outro clip with embedded audio. *Suggested uses: any video that needs to show real UI — recruitment, product walkthroughs, feature demos, launch videos, onboarding spots, "how it works" pieces.*
 
-These are starting points, not constraints. Anything you can render is fair game; the suggested uses are just where each template shines. When neither fits, scaffold a new template via `/template <name>`.
+Both are extensible. The capabilities above are each template's **innate / out-of-the-box** scene types — you can always add new scene types, primitives, or motion effects to either one as a brief evolves. The "suggested uses" are downstream of what each ships with; if your brief overlaps either capability set, that template is a fine starting point regardless of category. Scaffold a brand-new template via `/template <name>` only when neither's built-in scene set is a good base to extend.
 
 ## Folder layout
 

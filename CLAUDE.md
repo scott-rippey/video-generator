@@ -30,12 +30,12 @@ If something jumps out (a brief that's been sitting unrendered for a while, a co
 
 Don't pattern-match to whatever the previous video looked like. Each conversation starts fresh: ask what kind of video this is (hero, talking-head, tutorial, social ad, narrative, product demo, podcast intro), what format (horizontal or vertical, 4K or 1080p), length, audience, and vibe. Music and voiceover are the only near-constants; everything else (scenes, text overlays, structure, pacing, tone) is fluid.
 
-Two included templates, pick by **what the brief needs to render**:
+Two included templates, pick by **what each one ships with**:
 
-- **`hero-16x9`** — Renders: generated AI clips full-screen, voiceover, animated text overlays, lower-thirds, library clips, split-screen, generated-image backgrounds. *Suggested uses: hero spots, product reveals, brand teasers, explainer openers.*
-- **`recruitment-16x9`** — Renders: screenshot pans with multi-stage keyframe motion + circle-glow callouts, animated form-fills with typed input and typing SFX, phone chat mockups with highlighted phrases, close-card with optional faded background clip + configurable intro delay, outro clip with embedded audio. *Suggested uses: recruitment, product walkthroughs, feature demos, launch videos, onboarding spots, "how it works" pieces — anything that needs to show real UI.*
+- **`hero-16x9`** — Ships with: generated AI clips full-screen, voiceover, animated text overlays, lower-thirds, library clips, split-screen, generated-image backgrounds. *Suggested uses: hero spots, product reveals, brand teasers, explainer openers.*
+- **`recruitment-16x9`** — Ships with: screenshot pans with multi-stage keyframe motion + circle-glow callouts, animated form-fills with typed input and typing SFX, phone chat mockups with highlighted phrases, close-card with optional faded background clip + configurable intro delay, outro clip with embedded audio. *Suggested uses: recruitment, product walkthroughs, feature demos, launch videos, onboarding spots, "how it works" pieces — anything that needs to show real UI.*
 
-The use cases are just suggestions. Match the brief to whichever set of CAPABILITIES it needs and use that template. If the brief needs capabilities neither covers, scaffold a new template (`/template <name>`).
+Both templates are extensible. The lists above are each one's **innate / out-of-the-box** scene types — you can always add new scene types, primitives, or motion effects to either template as a brief evolves. The suggested uses are downstream of what ships built-in. Match the brief to whichever template's starting set overlaps best; only scaffold a brand-new template (`/template <name>`) when neither's built-in scene set is a useful base to extend.
 
 ## How the pipeline works
 
