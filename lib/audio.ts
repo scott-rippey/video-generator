@@ -28,6 +28,64 @@ async function ffmpeg(args: string[], label: string): Promise<void> {
   });
 }
 
+// Decode an audio file to mono float32 PCM in memory for envelope analysis.
+function decodePcmMono(file: string, sampleRate = 16000): Promise<Float32Array> {
+  return new Promise((resolveOk, rejectFail) => {
+    const proc = spawn(
+      'ffmpeg',
+      ['-v', 'error', '-i', file, '-ac', '1', '-ar', String(sampleRate), '-f', 'f32le', '-'],
+      { stdio: ['ignore', 'pipe', 'pipe'] },
+    );
+    const chunks: Buffer[] = [];
+    let stderr = '';
+    proc.stdout.on('data', (d: Buffer) => chunks.push(d));
+    proc.stderr.on('data', (d: Buffer) => (stderr += d.toString()));
+    proc.on('error', rejectFail);
+    proc.on('close', (code: number | null) => {
+      if (code !== 0) return rejectFail(new Error(`ffmpeg pcm decode failed (exit ${code}):\n${stderr}`));
+      const buf = Buffer.concat(chunks);
+      // Copy into a fresh, 4-byte-aligned buffer before viewing as Float32.
+      const aligned = new Uint8Array(buf.length);
+      aligned.set(buf);
+      resolveOk(new Float32Array(aligned.buffer, 0, Math.floor(buf.length / 4)));
+    });
+  });
+}
+
+// Find the time (seconds) where spoken content actually ends, ignoring lone
+// low-level transients (mouth clicks, a stray pop). Used to fade the trailing
+// tail to silence. Returns null if no sustained speech is detected.
+function findSpeechEndSeconds(
+  samples: Float32Array,
+  sampleRate: number,
+  windowMs = 30,
+  thresholdDb = -35,
+): number | null {
+  const win = Math.max(1, Math.round((windowMs / 1000) * sampleRate));
+  const n = Math.floor(samples.length / win);
+  if (n === 0) return null;
+  const above: boolean[] = new Array(n);
+  for (let i = 0; i < n; i++) {
+    let sum = 0;
+    const start = i * win;
+    for (let j = 0; j < win; j++) {
+      const s = samples[start + j]!;
+      sum += s * s;
+    }
+    const rms = Math.sqrt(sum / win);
+    const db = rms > 1e-7 ? 20 * Math.log10(rms) : -120;
+    above[i] = db > thresholdDb;
+  }
+  // Last above-threshold window that has an above-threshold neighbour: this is
+  // sustained speech (>=60ms), so an isolated single-window click is excluded.
+  for (let i = n - 1; i >= 0; i--) {
+    if (above[i] && ((i > 0 && above[i - 1]) || (i < n - 1 && above[i + 1]))) {
+      return ((i + 1) * win) / sampleRate;
+    }
+  }
+  return null;
+}
+
 /**
  * Splits a long script into chunks at sentence boundaries.
  * ElevenLabs handles ~5000 chars per request comfortably; we cap at ~2500
@@ -84,9 +142,14 @@ export interface VoiceoverResult {
 
 // Voiceover loudness/levelling chain.
 // dynaudnorm smooths per-chunk volume swings (ElevenLabs is known to fade volume across long generations).
+// speechnorm lifts the quiet ends of sentences: eleven_multilingual_v2 decrescendos the final word,
+// leaving it several dB below the phrase body even after dynaudnorm (both are peak-referenced, so neither
+// lifts a quiet vowel sitting under a louder sibilant). speechnorm is speech-tuned and pulls that tail up
+// cleanly without clipping. To disable, drop the speechnorm stage.
 // loudnorm targets a consistent integrated loudness (-14 LUFS, broadcast-loud for video) with a -1.5 dBTP
 // true-peak limiter to prevent clipping. The result is voice that stays evenly present front to back.
-const VOICEOVER_FILTER = 'dynaudnorm=p=0.95:s=20:f=200:g=11,loudnorm=I=-14:TP=-1.5:LRA=7';
+const VOICEOVER_FILTER =
+  'dynaudnorm=p=0.95:s=20:f=200:g=11,speechnorm=e=25:r=0.001:l=1,loudnorm=I=-14:TP=-1.5:LRA=7';
 
 export async function generateVoiceover(slug: string, scenes: Scenes): Promise<VoiceoverResult> {
   const { voiceover } = scenes;
@@ -220,20 +283,40 @@ export async function generateVoiceover(slug: string, scenes: Scenes): Promise<V
     console.log(`[audio] voiceover.raw.mp3 cached; re-applying leveller without TTS API call`);
   }
 
+  // Pass 1: level the raw voiceover (dynaudnorm + speechnorm + loudnorm).
+  const leveledPath = resolve(dir, 'voiceover.leveled.mp3');
+  await ffmpeg(
+    ['-y', '-i', rawPath, '-af', VOICEOVER_FILTER, '-c:a', 'libmp3lame', '-b:a', '192k', leveledPath],
+    'voiceover leveller',
+  );
+
+  // Pass 2: trailing-tail fade. ElevenLabs ends a sentence with a decrescendo plus a trailing
+  // breath, and the speechnorm tail-lift can boost a low-level mouth click in that region into an
+  // audible pop. Detect where speech actually ends (ignoring lone transients) and fade everything
+  // after it to silence. Falls back to a tiny end-fade if detection is unavailable or speech runs
+  // to the file end, which still removes an end-of-clip click without touching the spoken word.
+  const leveledDuration = await probeDuration(leveledPath);
+  let fadeStart = Math.max(0, leveledDuration - 0.03);
+  try {
+    const speechEnd = findSpeechEndSeconds(await decodePcmMono(leveledPath), 16000);
+    if (speechEnd !== null) fadeStart = Math.min(speechEnd + 0.06, leveledDuration - 0.02);
+  } catch (err) {
+    console.error('[audio] voiceover speech-end detection failed; using end-fade fallback:', err);
+  }
   await ffmpeg(
     [
       '-y',
       '-i',
-      rawPath,
+      leveledPath,
       '-af',
-      VOICEOVER_FILTER,
+      `afade=t=out:st=${fadeStart.toFixed(3)}:d=0.05`,
       '-c:a',
       'libmp3lame',
       '-b:a',
       '192k',
       finalPath,
     ],
-    'voiceover leveller',
+    'voiceover tail-fade',
   );
 
   const duration = await probeDuration(finalPath);
@@ -256,6 +339,18 @@ export async function generateMusic(slug: string, scenes: Scenes): Promise<Music
 
   if (music.source === 'none') {
     return { path: '', durationSeconds: 0, source: 'none', charactersUsed: 0 };
+  }
+
+  // ElevenLabs Music composes a complete, self-resolving piece (~30s of full energy, then a built-in
+  // wind-down) regardless of the requested length or any "no ending / loop" prompt language. Asking
+  // for >30s yields silence-padded tails, not sustained energy. To cover a longer timeline, generate
+  // the bed and time-stretch the usable content to fit (e.g. atempo) or seamlessly loop-extend it.
+  if (music.source === 'elevenlabs-music' && music.duration_seconds > 31) {
+    console.error(
+      `[audio] WARNING: music duration_seconds=${music.duration_seconds}s exceeds the ~30s ElevenLabs ` +
+        `sustained-energy window. The generated bed will likely resolve and pad silence past ~30s. ` +
+        `Consider generating ~30s and time-stretching/looping to fill the timeline.`,
+    );
   }
 
   if (existsSync(finalPath)) {

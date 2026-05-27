@@ -165,6 +165,18 @@ The skills layer started as a fork of [digitalsamba/claude-code-video-toolkit](h
 
 ## Versions
 
+### v3 — 2026-05-27
+
+**Library clips: HEVC auto-transcode**
+- Library video clips (e.g. an `outro-clip` source) encoded as H.265/HEVC are now auto-transcoded to H.264 during asset staging in `lib/render.ts`. Remotion's `OffthreadVideo` extracts frames with FFmpeg and decodes HEVC unreliably; we hit a single corrupted frame in a shipped render (a logo flashed green and misplaced to the corner for 1/30s). The transcode runs once and is cached per source `mtime+size`; non-HEVC and non-video files pass through untouched. The original source file is never modified.
+
+**Voiceover: end-of-sentence treatment**
+- `speechnorm` added to the voiceover leveller chain. `eleven_multilingual_v2` decrescendos the final word of a sentence, leaving it several dB below the phrase body even after `dynaudnorm` (both are peak-referenced, so neither lifts a quiet vowel sitting under a louder sibilant). speechnorm is speech-tuned and pulls that tail up cleanly without clipping.
+- Automatic trailing-tail fade. The leveller is now two passes: level, then detect where speech actually ends (via an in-memory RMS envelope that ignores lone transients) and fade everything after it to silence. This removes end-of-clip clicks and mouth pops (including ones the speechnorm tail-lift would otherwise amplify) without touching the spoken word. Falls back to a tiny end-fade if detection is unavailable.
+
+**Music: duration-cap warning**
+- ElevenLabs Music composes a complete, self-resolving piece (~30s of full energy, then a built-in wind-down) regardless of the requested length or any "no ending / loop" prompt language. Requesting more just pads silence past ~30s. `generateMusic` now warns when `duration_seconds > 31` and points to the workaround: generate ~30s and time-stretch (`atempo`, ~8% slower reads as "slightly slower" and stays upbeat) or seamlessly loop-extend to fill a longer timeline.
+
 ### v2 — 2026-05-23
 
 **New templates**

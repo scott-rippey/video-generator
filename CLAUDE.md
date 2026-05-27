@@ -277,9 +277,19 @@ These are baked-in defaults that came out of real iteration on shipped videos. A
 
 - Every voiceover gets `dynaudnorm` + `loudnorm` (target -14 LUFS, true-peak -1.5 dBTP) so it stays evenly loud front to back. ElevenLabs voiceovers are known to trail off in volume across long generations; the leveller fixes that.
 - Voiceover dynaudnorm uses `f=200:g=11` (not the ffmpeg defaults of 500/31). That gives a ~2.2s reactive context window instead of ~15.5s, so a slow energy drift over the last third gets pulled back up to level instead of being smoothed across the whole clip. If a future voiceover sounds pumpy or breathy mid-word, widen `g` (try 15, then 21) before dropping the tightening entirely.
+- The chain also runs `speechnorm` (between dynaudnorm and loudnorm) to lift the quiet ends of sentences. `eleven_multilingual_v2` decrescendos the final word, leaving it several dB below the phrase body, and because dynaudnorm and speechnorm are both peak-referenced, neither lifts a quiet final vowel sitting under a louder sibilant. speechnorm is speech-tuned and pulls that tail up without clipping. A broadband gain-ramp + limiter does NOT work here (it clips/squashes the body). If the user says the voice "fades out at the end," this is the lever; the leveller already applies it.
+- The leveller then applies an automatic **trailing-tail fade**: after leveling, `lib/audio.ts` detects where speech actually ends (an in-memory RMS envelope that ignores lone transients) and fades everything after it to silence. This kills end-of-clip clicks and mouth pops (including ones the speechnorm tail-lift would otherwise boost into audibility) without touching the spoken word. No config needed; it falls back to a tiny end-fade if detection is unavailable.
 - Every music bed gets `loudnorm` (target -22 LUFS) so it sits consistently under the voice. Without leveling, music swells where the source had a swell and ducks where it had a duck — feels uneven against a level voice.
 - The smart raw-audio cache (`runs/<slug>/audio/voiceover.raw.mp3`, `music.raw.mp3`) means iterating on audio post-processing is FREE — no ElevenLabs API calls. Re-tune leveler params, re-run, see new mix in ~30s.
 - Music volume in the Remotion composition defaults to ~0.18 (subtle bed). 0.25 is too loud against a -14 LUFS voice.
+
+### Music: ElevenLabs caps usable length at ~30s
+
+ElevenLabs Music composes a complete, self-resolving piece: roughly **~30s of full energy, then a built-in wind-down**, regardless of the requested length or any "no ending / no outro / continuous loop" prompt language (verified: even an explicit anti-ending prompt still resolved by ~30s and padded silence). Asking for a longer `duration_seconds` does NOT buy more sustained music. `generateMusic` warns when `duration_seconds > 31`.
+
+To score a timeline longer than ~30s, do NOT just bump `duration_seconds` and regenerate (it won't help and costs a generation each time). Instead:
+- **Time-stretch** the usable content to fit: `atempo` the generated bed so its natural wind-down lands at the target handoff point. ~8% slower (e.g. `atempo=0.92`) reads as "slightly slower" and stays upbeat; ~15-20% starts to drag. Then `loudnorm=I=-22` + a short end fade. Build it manually and leave the result as the cached `music.mp3` (the orchestrator only regenerates when the file is missing; deleting it reverts the stretch).
+- Or seamlessly **loop-extend** a full-energy section (keeps original tempo, but watch for an audible seam).
 
 ### Cadence: slow the voice, not the scenes
 
@@ -388,6 +398,13 @@ When a user arrives with a fragment ("I want a hero for X"), default to walking 
 - Cost JSON shape: `{"credits": int, "credits_exact": float}`. Trust `credits_exact` for accurate per-job cost.
 - **Video clip jobs MUST be serialized**, not parallelized. Higgsfield Plus rejects too-many-parallel video jobs with `"not_enough_credits"` even when balance is plenty. Images can still parallel; only clips need single-file processing. `lib/assets.ts` handles this automatically.
 - NSFW filter false positives are common and trigger refunds. Don't take rejections personally; rewrite the prompt avoiding the documented triggers (all-caps, "pulsing", "transforming", "chaotic", direct person+age+action) and retry.
+
+### Library video clips: HEVC is auto-transcoded to H.264
+
+Remotion's `OffthreadVideo` extracts frames with FFmpeg and decodes **H.265/HEVC unreliably**: a shipped render hit a single corrupted frame (a logo flashed green and jumped to the corner for 1/30s) sourced from an HEVC outro clip whose own file was clean. H.264 is the dependable codec. `lib/render.ts` now probes every staged library video and, if it's HEVC, transcodes it to H.264 once (cached per source `mtime+size`) before the render; the original file is never modified.
+
+- This is automatic, no scene config. If a user supplies an outro/library clip and a frame glitches (green, garbled, misplaced), confirm the source is HEVC (`ffprobe ... codec_name`) and trust the transcode; the source itself is usually fine.
+- To diagnose a suspected glitch frame: extract the render's frames around the timestamp and scan a corner for green-dominant pixels (`gr>110 && gr-r>45 && gr-b>45`); an isolated spike pinpoints the bad frame. Re-scan after the fix to confirm zero.
 
 ## Constraints
 

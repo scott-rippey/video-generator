@@ -1,6 +1,7 @@
 import { bundle } from '@remotion/bundler';
 import { selectComposition, renderMedia } from '@remotion/renderer';
-import { copyFileSync, existsSync, mkdirSync } from 'node:fs';
+import { spawnSync } from 'node:child_process';
+import { copyFileSync, existsSync, mkdirSync, statSync } from 'node:fs';
 import { resolve, dirname, basename, extname } from 'node:path';
 import { PATHS, runDir, videoOutputPath, resolveBrand, WORKSPACE_ROOT } from './config.ts';
 import type { Scenes } from './scenes.ts';
@@ -8,6 +9,46 @@ import type { AssetMap } from './assets.ts';
 import type { MusicResult, VoiceoverResult } from './audio.ts';
 
 export type ResolutionOverride = '4k' | '1080p' | null;
+
+const VIDEO_EXTS = new Set(['.mp4', '.mov', '.mkv', '.webm', '.m4v', '.avi']);
+
+// Remotion's OffthreadVideo extracts frames with FFmpeg, and H.265/HEVC sources decode unreliably
+// through that path (we have hit single corrupted frames: a logo flashing green/misplaced for one
+// frame). H.264 is the dependable codec. Transcode any HEVC library clip to H.264 once (cached by
+// source mtime+size) before it enters the render. Non-HEVC and non-video files pass through untouched.
+function probeVideoCodec(file: string): string | null {
+  const res = spawnSync(
+    'ffprobe',
+    ['-v', 'error', '-select_streams', 'v:0', '-show_entries', 'stream=codec_name', '-of', 'default=noprint_wrappers=1:nokey=1', file],
+    { encoding: 'utf8' },
+  );
+  if (res.status !== 0) return null;
+  return res.stdout.trim().split('\n')[0]?.trim() || null;
+}
+
+function ensureRenderFriendly(srcAbs: string, cacheDir: string): string {
+  const ext = extname(srcAbs).toLowerCase();
+  if (!VIDEO_EXTS.has(ext)) return srcAbs;
+  const codec = probeVideoCodec(srcAbs);
+  if (codec !== 'hevc' && codec !== 'h265') return srcAbs;
+
+  mkdirSync(cacheDir, { recursive: true });
+  const st = statSync(srcAbs);
+  const key = `${basename(srcAbs, extname(srcAbs)).replace(/[^a-zA-Z0-9._-]/g, '_')}-${Math.round(st.mtimeMs)}-${st.size}.mp4`;
+  const dest = resolve(cacheDir, key);
+  if (!existsSync(dest)) {
+    console.log(`[render] transcoding HEVC library clip to H.264 (Remotion decodes H.265 unreliably): ${srcAbs}`);
+    const res = spawnSync(
+      'ffmpeg',
+      ['-y', '-v', 'error', '-i', srcAbs, '-c:v', 'libx264', '-pix_fmt', 'yuv420p', '-crf', '16', '-preset', 'medium', '-c:a', 'aac', '-b:a', '192k', '-movflags', '+faststart', dest],
+      { encoding: 'utf8' },
+    );
+    if (res.status !== 0) {
+      throw new Error(`HEVC->H.264 transcode failed for ${srcAbs}:\n${res.stderr}`);
+    }
+  }
+  return dest;
+}
 
 export interface RenderOptions {
   variant?: string;
@@ -72,6 +113,7 @@ function stagePublicDir(
 } {
   const publicDir = resolve(runDir(slug), 'render', '_public');
   const assetsDir = resolve(publicDir, 'assets');
+  const transcodeCacheDir = resolve(runDir(slug), 'render', '_transcode');
   mkdirSync(assetsDir, { recursive: true });
 
   // Voiceover
@@ -102,9 +144,10 @@ function stagePublicDir(
         `Library file referenced by scene ${sceneId} not found: ${src}`,
       );
     }
-    const ext = extname(filePath);
+    const useSrc = ensureRenderFriendly(src, transcodeCacheDir);
+    const ext = extname(useSrc);
     const fileName = `${sceneId.replace(/[^a-zA-Z0-9._-]/g, '_')}${ext}`;
-    copyFileSync(src, resolve(assetsDir, fileName));
+    copyFileSync(useSrc, resolve(assetsDir, fileName));
     assetMap[sceneId] = `assets/${fileName}`;
   };
 
