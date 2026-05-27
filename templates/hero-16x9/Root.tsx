@@ -26,6 +26,7 @@ const defaultProps: MainInputProps = {
         subtext: 'No scenes.json passed; this is the default preview.',
         align: 'center',
         background: { type: 'solid', color: '#0f172a' },
+        sfx: [],
       },
     ],
   },

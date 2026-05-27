@@ -32,6 +32,14 @@ export const SceneRouter: React.FC<SceneProps> = (props) => {
       return <LowerThirdScene {...props} scene={scene} />;
     case 'library-clip':
       return <LibraryClipScene {...props} scene={scene} />;
+    case 'ui-static-reveal':
+    case 'ui-form-fill':
+    case 'phone-mockup-chat':
+    case 'close-card':
+    case 'outro-clip':
+      throw new Error(
+        `Scene type "${scene.type}" is not supported by the hero-16x9 template. Use template "recruitment-16x9" (set scenes.template) for UI-animation, phone-mockup, close-card, and outro-clip scenes.`,
+      );
     default: {
       const exhaustiveCheck: never = scene;
       throw new Error(`Unhandled scene type: ${JSON.stringify(exhaustiveCheck)}`);
