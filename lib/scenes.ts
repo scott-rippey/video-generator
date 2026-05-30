@@ -270,7 +270,7 @@ const highlightSchema = z.object({
 });
 
 // ui-static-reveal: scroll / zoom over a screenshot with optional highlights
-// Used by: Beat 2 (Website class page scroll), Beat 8 (Brand Voice landing scroll)
+// Used for: panning across a landing-page or web-app screenshot to draw attention to specific UI areas
 export const uiStaticRevealSceneSchema = z.object({
   ...baseSceneFields,
   type: z.literal('ui-static-reveal'),
@@ -292,7 +292,7 @@ export const uiStaticRevealSceneSchema = z.object({
 });
 
 // ui-form-fill: cover existing form values, animate typed input, button press, confirmation
-// Used by: Beat 6 (Agent Services Form), Beat 7 (Vendor Form)
+// Used for: walking through a real form on a real screenshot (typed input, button press, confirmation overlay)
 const formFieldSchema = z.object({
   // bounding box of the field on the screenshot (original pixel coords)
   x: z.number(),
@@ -359,7 +359,7 @@ export const uiFormFillSceneSchema = z.object({
 });
 
 // phone-mockup-chat: React-built phone bezel + animated chat thread (no screenshot)
-// Used by: Beat 5 (Hey Josh chat)
+// Used for: showing a chatbot or messaging-app conversation as an animated thread (no static screenshot needed)
 const chatHighlightSchema = z.object({
   phrase: z.string().min(1),
   at_seconds: z.number().min(0),
@@ -413,7 +413,7 @@ export const phoneMockupChatSceneSchema = z.object({
 });
 
 // close-card: brand-themed CTA card with optional faded clip background
-// Used by: Beat 9
+// Used for: the final CTA / brand sign-off card before any optional outro clip
 export const closeCardSceneSchema = z.object({
   ...baseSceneFields,
   type: z.literal('close-card'),

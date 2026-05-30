@@ -310,7 +310,7 @@ Recommended sections:
 Example brief:
 
 ```markdown
-# Slug: ai-advantage-promo
+# Slug: saas-hero-promo
 
 ## Purpose
 30-second hero video for a productivity SaaS sign-up page. Plays autoplay-muted at the top of the landing page, with optional sound-on.
