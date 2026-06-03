@@ -1,4 +1,4 @@
-# Video Studio
+# Video Studio (v4)
 
 A programmable video studio for [Claude Code](https://claude.com/claude-code). Describe a video in a markdown brief, and Claude composes it from AI-generated voice, music, imagery, and clips, then assembles a finished MP4 with [Remotion](https://www.remotion.dev/).
 
@@ -164,6 +164,8 @@ The skills layer started as a fork of [digitalsamba/claude-code-video-toolkit](h
 ---
 
 ## Versions
+
+Current version: **v4**. Minor changes bump the decimal (e.g. v4 to v4.1); significant features bump the major (v4 to v5). Keep the `(v4)` marker in the title heading in sync with the newest entry below.
 
 ### v4 - 2026-06-03
 
