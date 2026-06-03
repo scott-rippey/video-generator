@@ -3,7 +3,7 @@ import { mkdirSync, writeFileSync, readFileSync, existsSync, copyFileSync } from
 import { resolve } from 'node:path';
 import { request } from 'undici';
 import { loadEnv, runDir, WORKSPACE_ROOT } from './config.ts';
-import type { Scenes } from './scenes.ts';
+import { compositionPlanSchema, type CompositionPlan, type Scenes } from './scenes.ts';
 
 const env = loadEnv();
 
@@ -332,6 +332,65 @@ export interface MusicResult {
   charactersUsed: number;
 }
 
+// Case-insensitively de-duplicate a list of style strings while preserving order.
+function dedupeStyles(styles: string[]): string[] {
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const raw of styles) {
+    const s = raw.trim();
+    const key = s.toLowerCase();
+    if (s && !seen.has(key)) {
+      seen.add(key);
+      out.push(s);
+    }
+  }
+  return out;
+}
+
+// force_instrumental is rejected by the API when a composition_plan is supplied, so bake
+// instrumental intent into the plan instead: drop every section's lyric lines and add
+// explicit no-vocal guidance to the global styles.
+function makePlanInstrumental(plan: CompositionPlan): CompositionPlan {
+  return {
+    positive_global_styles: dedupeStyles([...plan.positive_global_styles, 'instrumental']),
+    negative_global_styles: dedupeStyles([
+      ...plan.negative_global_styles,
+      'vocals',
+      'singing',
+      'lyrics',
+      'spoken word',
+    ]),
+    sections: plan.sections.map((s) => ({ ...s, lines: [] })),
+  };
+}
+
+// Create a composition plan from a text prompt (POST /v1/music/plan). Free (no credits),
+// rate-limited per tier. The model targets music_length_ms across its chosen sections.
+async function createCompositionPlan(
+  prompt: string,
+  durationSeconds: number,
+  modelId: string,
+): Promise<CompositionPlan> {
+  const res = await request(env.elevenlabs.musicPlanEndpoint, {
+    method: 'POST',
+    headers: {
+      'xi-api-key': env.elevenlabs.apiKey,
+      'content-type': 'application/json',
+      accept: 'application/json',
+    },
+    body: JSON.stringify({
+      prompt,
+      music_length_ms: Math.round(durationSeconds * 1000),
+      model_id: modelId,
+    }),
+  });
+  if (res.statusCode !== 200) {
+    const text = await res.body.text();
+    throw new Error(`ElevenLabs composition plan failed (${res.statusCode}): ${text}`);
+  }
+  return compositionPlanSchema.parse(await res.body.json());
+}
+
 export async function generateMusic(slug: string, scenes: Scenes): Promise<MusicResult> {
   const dir = audioDir(slug);
   const { music } = scenes;
@@ -339,18 +398,6 @@ export async function generateMusic(slug: string, scenes: Scenes): Promise<Music
 
   if (music.source === 'none') {
     return { path: '', durationSeconds: 0, source: 'none', charactersUsed: 0 };
-  }
-
-  // ElevenLabs Music composes a complete, self-resolving piece (~30s of full energy, then a built-in
-  // wind-down) regardless of the requested length or any "no ending / loop" prompt language. Asking
-  // for >30s yields silence-padded tails, not sustained energy. To cover a longer timeline, generate
-  // the bed and time-stretch the usable content to fit (e.g. atempo) or seamlessly loop-extend it.
-  if (music.source === 'elevenlabs-music' && music.duration_seconds > 31) {
-    console.error(
-      `[audio] WARNING: music duration_seconds=${music.duration_seconds}s exceeds the ~30s ElevenLabs ` +
-        `sustained-energy window. The generated bed will likely resolve and pad silence past ~30s. ` +
-        `Consider generating ~30s and time-stretching/looping to fill the timeline.`,
-    );
   }
 
   if (existsSync(finalPath)) {
@@ -399,6 +446,8 @@ export async function generateMusic(slug: string, scenes: Scenes): Promise<Music
   }
 
   const rawPath = resolve(dir, 'music.raw.mp3');
+  const planPath = resolve(dir, 'music.plan.json');
+  const composeUrl = `${env.elevenlabs.musicEndpoint}?output_format=mp3_44100_192`;
   let charactersUsed = 0;
   if (!existsSync(rawPath)) {
     const lengthMs = Math.round(music.duration_seconds * 1000);
@@ -407,32 +456,92 @@ export async function generateMusic(slug: string, scenes: Scenes): Promise<Music
         `music_length_ms must be between 3000 and 600000; got ${lengthMs} (${music.duration_seconds}s)`,
       );
     }
-    const url = `${env.elevenlabs.musicEndpoint}?output_format=mp3_44100_192`;
-    const body: Record<string, unknown> = {
-      prompt: music.prompt,
-      music_length_ms: lengthMs,
-      model_id: music.model_id,
-    };
-    if (music.force_instrumental !== undefined) {
-      body.force_instrumental = music.force_instrumental;
+
+    if (music.use_composition_plan) {
+      // Composition-plan path. Resolve the plan in priority order: an explicit plan in
+      // scenes.json, a cached music.plan.json (free to reuse, hand-editable), or a fresh
+      // auto-generated plan from the prompt (free, rate-limited).
+      let plan: CompositionPlan;
+      if (music.composition_plan) {
+        plan = music.composition_plan;
+        console.log('[audio] music: using composition_plan from scenes.json');
+      } else if (existsSync(planPath)) {
+        plan = compositionPlanSchema.parse(JSON.parse(readFileSync(planPath, 'utf8')));
+        console.log(`[audio] music: using cached plan at ${planPath}`);
+      } else {
+        console.log(
+          `[audio] music: generating composition plan (free) for ${music.duration_seconds}s, ` +
+            `prompt="${music.prompt.slice(0, 80)}..."`,
+        );
+        plan = await createCompositionPlan(music.prompt, music.duration_seconds, music.model_id);
+      }
+      if (music.force_instrumental) plan = makePlanInstrumental(plan);
+
+      // Cache the resolved plan so it can be inspected, hand-edited, and reused without
+      // another API call. Delete music.plan.json to regenerate the plan from scratch.
+      writeFileSync(planPath, JSON.stringify(plan, null, 2) + '\n');
+      const planSeconds = plan.sections.reduce((sum, s) => sum + s.duration_ms, 0) / 1000;
+      console.log(
+        `[audio] music: plan has ${plan.sections.length} section(s) totaling ${planSeconds.toFixed(1)}s`,
+      );
+
+      // Compose from the plan (costs credits). model_id is omitted so it defaults to the
+      // only API-available model (music_v1); when Music v2 reaches the API, thread
+      // music.model_id through here. respect_sections_durations defaults true, so the
+      // plan's section durations are honored.
+      const res = await request(composeUrl, {
+        method: 'POST',
+        headers: {
+          'xi-api-key': env.elevenlabs.apiKey,
+          'content-type': 'application/json',
+          accept: 'audio/mpeg',
+        },
+        body: JSON.stringify({ composition_plan: plan }),
+      });
+      if (res.statusCode !== 200) {
+        const text = await res.body.text();
+        throw new Error(`ElevenLabs Music (composition plan) failed (${res.statusCode}): ${text}`);
+      }
+      writeFileSync(rawPath, Buffer.from(await res.body.arrayBuffer()));
+      charactersUsed = music.prompt.length;
+    } else {
+      // Legacy single-shot prompt path. Composes a self-resolving piece: ~30s of full
+      // energy then a built-in wind-down regardless of requested length. Kept as a fallback;
+      // prefer the composition-plan path for timelines longer than ~30s.
+      if (music.duration_seconds > 31) {
+        console.error(
+          `[audio] WARNING: legacy prompt music at ${music.duration_seconds}s exceeds the ~30s ` +
+            `ElevenLabs sustained-energy window; the bed will resolve and pad silence past ~30s. ` +
+            `Set use_composition_plan: true to fill the timeline natively.`,
+        );
+      }
+      const body: Record<string, unknown> = {
+        prompt: music.prompt,
+        music_length_ms: lengthMs,
+        model_id: music.model_id,
+      };
+      if (music.force_instrumental !== undefined) {
+        body.force_instrumental = music.force_instrumental;
+      }
+      console.log(
+        `[audio] music: ${music.duration_seconds}s (legacy prompt), prompt="${music.prompt.slice(0, 80)}..."`,
+      );
+      const res = await request(composeUrl, {
+        method: 'POST',
+        headers: {
+          'xi-api-key': env.elevenlabs.apiKey,
+          'content-type': 'application/json',
+          accept: 'audio/mpeg',
+        },
+        body: JSON.stringify(body),
+      });
+      if (res.statusCode !== 200) {
+        const text = await res.body.text();
+        throw new Error(`ElevenLabs Music failed (${res.statusCode}): ${text}`);
+      }
+      writeFileSync(rawPath, Buffer.from(await res.body.arrayBuffer()));
+      charactersUsed = music.prompt.length;
     }
-    console.log(`[audio] music: ${music.duration_seconds}s, prompt="${music.prompt.slice(0, 80)}..."`);
-    const res = await request(url, {
-      method: 'POST',
-      headers: {
-        'xi-api-key': env.elevenlabs.apiKey,
-        'content-type': 'application/json',
-        accept: 'audio/mpeg',
-      },
-      body: JSON.stringify(body),
-    });
-    if (res.statusCode !== 200) {
-      const text = await res.body.text();
-      throw new Error(`ElevenLabs Music failed (${res.statusCode}): ${text}`);
-    }
-    const buf = Buffer.from(await res.body.arrayBuffer());
-    writeFileSync(rawPath, buf);
-    charactersUsed = music.prompt.length;
   } else {
     console.log(`[audio] music.raw.mp3 cached; re-applying leveller without API call`);
   }

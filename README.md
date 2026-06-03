@@ -165,6 +165,15 @@ The skills layer started as a fork of [digitalsamba/claude-code-video-toolkit](h
 
 ## Versions
 
+### v4 - 2026-06-03
+
+**Music: composition plans (fill the full timeline)**
+- ElevenLabs Music generation now defaults to **composition plans** instead of single-shot prompts. `generateMusic` auto-builds a multi-section plan from your prompt via the free `POST /v1/music/plan` endpoint, sized so the section durations sum to `duration_seconds`, then composes from it. Energy holds across the whole timeline and resolves at the target length, instead of the single-shot model's ~30s wind-down plus silence padding. Verified: a 40s instrumental bed held full energy through ~36s, then resolved cleanly to 40s.
+- New cache artifact `music.plan.json` (free to regenerate, hand-editable) sits beside `music.raw.mp3`. Delete the plan to rebuild it free, or edit its sections to reshape the arc (e.g. shorten the trailing outro for a hard cut), then delete `music.raw.mp3` to recompose.
+- `force_instrumental` is baked into the plan (the compose API rejects the flag alongside a `composition_plan`): lyric lines cleared, no-vocal styles added.
+- New `use_composition_plan` (default true) and optional `composition_plan` fields on the `elevenlabs-music` schema. Set `use_composition_plan: false` for the legacy single-shot path (with the `atempo` time-stretch / loop-extend workaround).
+- Music v2 (genre-switching, inpainting, long-form) shipped 2026-05-27 but is UI-only; the compose API still accepts only `music_v1`. `model_id` is threaded through so the switch is one line when v2 reaches the API.
+
 ### v3 — 2026-05-27
 
 **Library clips: HEVC auto-transcode**

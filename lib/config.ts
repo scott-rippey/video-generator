@@ -108,6 +108,7 @@ export interface EnvConfig {
   elevenlabs: {
     apiKey: string;
     musicEndpoint: string;
+    musicPlanEndpoint: string;
     ttsEndpoint: string;
   };
   modal: {
@@ -121,6 +122,7 @@ export function loadEnv(): EnvConfig {
     elevenlabs: {
       apiKey: required('ELEVENLABS_API_KEY'),
       musicEndpoint: 'https://api.elevenlabs.io/v1/music',
+      musicPlanEndpoint: 'https://api.elevenlabs.io/v1/music/plan',
       ttsEndpoint: 'https://api.elevenlabs.io/v1/text-to-speech',
     },
     modal: {

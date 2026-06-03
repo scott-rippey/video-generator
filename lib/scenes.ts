@@ -27,6 +27,27 @@ export const voiceoverSchema = z.object({
   settings: voiceSettingsSchema.optional(),
 });
 
+// ElevenLabs Music composition plan (the POST /v1/music/plan response shape).
+// A plan is a list of sections, each with its own duration; the section durations sum
+// to the target length so energy holds across the whole timeline, instead of the ~30s
+// self-resolving wind-down a single-shot prompt generation produces. Lyrics go in `lines`
+// (empty = instrumental section). source_from (looping/inpainting) is not wired yet.
+export const songSectionSchema = z.object({
+  section_name: z.string().min(1),
+  positive_local_styles: z.array(z.string()).default([]),
+  negative_local_styles: z.array(z.string()).default([]),
+  duration_ms: z.number().positive(),
+  lines: z.array(z.string()).default([]),
+});
+
+export const compositionPlanSchema = z.object({
+  positive_global_styles: z.array(z.string()).default([]),
+  negative_global_styles: z.array(z.string()).default([]),
+  sections: z.array(songSectionSchema).min(1),
+});
+
+export type CompositionPlan = z.infer<typeof compositionPlanSchema>;
+
 export const musicSchema = z.discriminatedUnion('source', [
   z.object({
     source: z.literal('elevenlabs-music'),
@@ -34,6 +55,14 @@ export const musicSchema = z.discriminatedUnion('source', [
     duration_seconds: z.number().positive(),
     model_id: z.string().default('music_v1'),
     force_instrumental: z.boolean().optional(),
+    // Composition-plan path (default). The bed is generated from a multi-section plan whose
+    // section durations sum to duration_seconds, holding full energy across the timeline.
+    // Set false to use the legacy single-shot prompt path (resolves to ~30s of energy then a
+    // built-in wind-down regardless of requested length).
+    use_composition_plan: z.boolean().default(true),
+    // Optional hand-authored plan. If present it is used verbatim (the free auto-plan step is
+    // skipped). Author the section durations to sum to duration_seconds.
+    composition_plan: compositionPlanSchema.optional(),
   }),
   z.object({
     source: z.literal('library'),
