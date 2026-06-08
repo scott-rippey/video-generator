@@ -81,7 +81,7 @@ This runs the included smoke-test brief end to end (~$0.10 of credits) and lands
 
 Either drop a brief in `briefs/<slug>.md` or just describe one to Claude:
 
-> "I want a 30-second hero video for my landing page. Confident, modern, no jargon. Show focused work, then the tagline 'Power Your Process.'"
+> "I want a 30-second hero video for my landing page. Confident, modern, no jargon. Show focused work, then end on my tagline."
 
 Claude will walk you through concept → beats → scene-by-scene voice/visuals → brief → render. See the **"Workflow: scene-by-scene conversation BEFORE the brief"** section of `CLAUDE.md` for the recommended flow.
 
