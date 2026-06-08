@@ -147,7 +147,7 @@ A typical 30-60s video with 2-3 clips + 4-5 images + voice + music stays well wi
 - **No em dashes** anywhere (code, prompts, briefs, generated content). Use hyphens or restructured sentences.
 - **All credentials in `.env`**, never echoed in logs or commits.
 - **Asset generation in the cloud**, render local.
-- **Cheap models by default** (Seedance 2.0 for clips, Nano Banana 2 for images). Premium models (Veo 3.1, Sora 2) are opt-in per scene.
+- **Cost-aware model defaults** — Nano Banana 2 for images; Seedance 2.0 for clips (the model that handles people reliably, and the most expensive part of any video, so prefer a still plus Remotion motion where you can). Veo 3.1 is opt-in per scene for premium hero shots.
 - **Human-in-the-loop confirmation gates stay** even when the workflow is trusted.
 - **Templates always read `brand.json`** (or the resolved per-brand brand.json). Never hardcode colors, fonts, or voice IDs in Remotion components.
 

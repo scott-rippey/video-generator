@@ -144,7 +144,7 @@ docs/                       setup spec + overview
 
 ## Backends in this workspace
 
-- **Higgsfield** (via official CLI + Skill, not REST API): all AI clips AND AI imagery. The `higgsfield-generate` skill is the primary entry point. Plus plan ($49/mo) gives access to all models including Veo 3.1, Sora 2, Seedance 2.0, Kling 3.0. 1,000 credits/month, top-ups available at ~$5/100. Auth lives in the CLI (`higgsfield auth login`), not in `.env`.
+- **Higgsfield** (via official CLI + Skill, not REST API): all AI clips AND AI imagery. The `higgsfield-generate` skill is the primary entry point. Plus plan ($49/mo) gives access to all models including Veo 3.1, Seedance 2.0, Kling 3.0. 1,000 credits/month, top-ups available at ~$5/100. Auth lives in the CLI (`higgsfield auth login`), not in `.env`.
 - **ElevenLabs**: voice + music. Set `voice.id` in `brand.json` (clone your own voice in the ElevenLabs UI, or pick a library voice). Default settings: stability 0.5, similarity_boost 0.78, style 0, model `eleven_multilingual_v2`. API key in `.env` as `ELEVENLABS_API_KEY`. Music endpoint `https://api.elevenlabs.io/v1/music` (`music_length_ms` 3000-600000). Music generation defaults to **composition plans** (free `/v1/music/plan` then compose) so beds fill the full timeline; see the music lesson below. API model is `music_v1` (Music v2 is UI-only as of 2026-06-03; API access pending).
 - **Modal**: $30/mo free credit, no subscription. Auth via `~/.modal.toml` after `modal token new`. Reserved for future FLUX self-hosted image gen and SadTalker talking heads. Not currently wired into `lib/assets.ts`. See `.claude/skills/modal/SKILL.md` for the patterns we'd use.
 - **Remotion**: 4.x. Local CPU. Free. Entry point per template at `templates/<name>/index.ts`. Composition id "Main".
@@ -154,7 +154,7 @@ docs/                       setup spec + overview
 
 Recommended defaults (override per scene when a brief calls for it):
 
-- **Default for any `generated-clip`**: `seedance_2_0`. Best balance of quality and cost (~22.5 credits for 5s at 720p std).
+- **Default for any `generated-clip`, and the required choice whenever a human is in frame**: `seedance_2_0`. It is the workhorse, not a budget option (~22.5 credits for 5s at 720p std, and clips are the costliest part of a video). When no real motion or person is needed, prefer a Nano Banana still plus Remotion motion instead of spending clip credits.
 - **Hero / cinematic / brief explicitly demands premium**: `veo3_1`. Outputs 4K natively (skip upscale). ~5x more credits than Seedance.
 - **Brief specifies a model by name**: honor it. Map common names to job_set_type via `higgsfield model list --video`.
 - **Anime / stylized**: `soul_cast` for character anime, `cinematic_studio_3_0` for cinematic style transfer.
@@ -419,7 +419,7 @@ Remotion's `OffthreadVideo` extracts frames with FFmpeg and decodes **H.265/HEVC
 - Keep dependencies minimal.
 - All credentials in `.env`, never echoed.
 - Asset generation in the cloud (Higgsfield, ElevenLabs, Modal). Render local.
-- Default to cheap models (Seedance, FLUX) unless the brief explicitly asks for premium (Veo, Sora).
+- Clips are the expensive part of a video. Reach for Seedance 2.0 whenever a human is in frame (not because it is cheap, it is not, but because it is the model that handles people reliably); otherwise prefer a Nano Banana still plus Remotion motion over an AI clip to save credits. Veo 3.1 is premium, hero shots only. Nano Banana is the default for images.
 - Templates always read `brand.json` (or resolved per-brand brand.json), never hardcode.
 - Human-in-the-loop confirmation gates stay even when the workflow is trusted.
 
