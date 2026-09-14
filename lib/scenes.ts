@@ -118,6 +118,10 @@ const libraryClipSchema = z.object({
   type: z.literal('library-clip'),
   file: z.string().min(1),
   start_offset: z.number().min(0).optional(),
+  // Library clips are muted by default: the master voiceover + music are the
+  // only audio. Set audio: true when the clip carries its own voice, e.g. a
+  // HeyGen avatar render driven by its own audio (see .claude/skills/heygen).
+  audio: z.boolean().default(false),
 });
 
 const libraryImageSchema = z.object({

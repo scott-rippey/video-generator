@@ -22,7 +22,7 @@ export const LibraryClipScene: React.FC<Props> = ({ scene, brand, format, assetM
         <OffthreadVideo
           src={src}
           style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-          muted
+          muted={!scene.clip.audio}
           startFrom={Math.round((scene.clip.start_offset ?? 0) * format.fps)}
         />
       ) : null}

@@ -69,7 +69,7 @@ export const FullscreenClipScene: React.FC<Props> = ({
           height: '100%',
           objectFit: 'cover',
         }}
-        muted
+        muted={scene.clip.type === 'library-clip' ? !scene.clip.audio : true}
       />
       {scene.overlay_text ? (
         <AbsoluteFill

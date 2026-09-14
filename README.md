@@ -1,8 +1,10 @@
-# Video Studio (v4)
+# Video Studio (v4.1)
 
 A programmable video studio for [Claude Code](https://claude.com/claude-code). Describe a video in a markdown brief, and Claude composes it from AI-generated voice, music, imagery, and clips, then assembles a finished MP4 with [Remotion](https://www.remotion.dev/).
 
 Built to be driven through conversation, not pipeline operation. You arrive with a fragment or a problem; Claude helps you shape it, walks each beat with you, then runs the render.
+
+This is a starting point, not a product. It hooks a set of services together (voice, music, imagery, clips, avatars, render) behind one conversation so you can adapt the pipeline to your own workflow: a YouTube channel with an avatar host, a podcast that only needs thumbnails, a client hero video. Swap any service, drop the ones you don't use, add your own scene types.
 
 ## What it produces
 
@@ -16,6 +18,7 @@ Built to be driven through conversation, not pipeline operation. You arrive with
 |---|---|---|
 | Voice + Music + SFX | [ElevenLabs](https://elevenlabs.io/) | Paid plan |
 | Image + Clip generation | [Higgsfield](https://higgsfield.ai/) via official CLI + skill | Plus plan $49/mo, 1000 credits |
+| (Optional) Talking-head avatar clips | [HeyGen](https://www.heygen.com/) via remote MCP (browser OAuth) | Your HeyGen plan credits |
 | (Optional) Self-hosted FLUX, SadTalker | [Modal](https://modal.com/) | Free $30/mo credit |
 | Render | [Remotion](https://www.remotion.dev/) 4.x | Free, local CPU |
 | Audio leveling | FFmpeg 8.x | Free |
@@ -32,12 +35,13 @@ Built to be driven through conversation, not pipeline operation. You arrive with
 - A Claude Code subscription
 - An [ElevenLabs](https://elevenlabs.io/) account with API key
 - A [Higgsfield](https://higgsfield.ai/) account (Plus plan recommended)
+- Optional: a [HeyGen](https://www.heygen.com/) account if you want an avatar presenter on screen
 
-> **Note**: FFmpeg, whisper.cpp, and Python (with Pillow for pixel-precise UI measurement) are used internally by the pipeline. Claude Code will check for them on first run and install via Homebrew / pip if missing. You don't have to set them up by hand.
+> **Note**: FFmpeg, whisper.cpp, and Python (with Pillow for pixel-precise UI measurement) are used internally by the pipeline. Claude Code checks for them during `/onboard` and installs only what your answers need. You don't have to set them up by hand.
 
 **Setup**
 
-> **Easiest path: just open the repo in Claude Code and say *"finish the setup."*** Claude will walk through each step interactively — clone tools via Homebrew, install JS deps, install the Higgsfield skills, prompt you for ElevenLabs / Higgsfield credentials, and verify the pipeline works. The manual commands below are the same steps if you'd rather run them yourself.
+> **Easiest path: open the repo in Claude Code and run `/onboard`.** Eight questions at most, one at a time: what you make, whether you write the scripts, where the voice comes from, whether there is a person on screen, which generators to lock, your default format, how you file your work. It turns services on or off, walks only the install steps you need, picks your voice, and writes a workflow proposal you can apply later. The manual commands below are what it runs for a typical video user.
 
 ```bash
 # 1. Clone
@@ -53,6 +57,9 @@ npx skills add higgsfield-ai/skills
 # 4. Authenticate Higgsfield CLI
 npx higgsfield auth login
 
+# 4b. (Optional) HeyGen: nothing to install. .mcp.json already points at HeyGen's
+#     remote MCP server; inside Claude Code run /mcp once and approve in the browser.
+
 # 5. Copy and fill in API keys
 cp .env.example .env
 # Edit .env: set ELEVENLABS_API_KEY
@@ -61,10 +68,8 @@ cp .env.example .env
 # 6. Open in Claude Code
 claude
 
-# 7. Inside Claude Code, walk through the setup spec
-# Tell Claude: "Read docs/video-studio-setup.md and finish any pending setup."
-# It will check your env, voices, brand defaults, install any missing local tools
-# (FFmpeg / whisper.cpp / Python+Pillow), and confirm the pipeline works.
+# 7. Inside Claude Code, run the onboarding interview
+/onboard
 ```
 
 **First render**
@@ -124,6 +129,7 @@ brand.json          workspace default brand (voice, fonts, colors)
 
 ## Slash commands
 
+- `/onboard [show|redo]`: first-run interview. Configures services and voice, runs only the setup steps you need, writes your workflow into CLAUDE.md and a proposal at docs/workflow.md.
 - `/video <slug>` — full pipeline: expand brief if needed, generate assets, render.
 - `/brief <slug>` — expand a brief into scenes.json only, no generation.
 - `/scene-review <slug>` — walk through a scenes.json, suggest tweaks, apply edits.
@@ -165,7 +171,13 @@ The skills layer started as a fork of [digitalsamba/claude-code-video-toolkit](h
 
 ## Versions
 
-Current version: **v4**. Minor changes bump the decimal (e.g. v4 to v4.1); significant features bump the major (v4 to v5). Keep the `(v4)` marker in the title heading in sync with the newest entry below.
+Current version: **v4.1**. Minor changes bump the decimal (e.g. v4 to v4.1); significant features bump the major (v4 to v5). Keep the `(v4.1)` marker in the title heading in sync with the newest entry below.
+
+### v4.1 - 2026-09-14
+
+- `/onboard`: a first-run interview (eight questions at most) that configures services and voice, runs the setup checklist filtered by the answers, writes a `## Your workflow` section into CLAUDE.md, and leaves a workspace-shape proposal at `docs/workflow.md` to apply in conversation. Claude offers it once on a fresh clone. README and CLAUDE.md now point at that one entry point.
+- HeyGen talking-head avatars: remote MCP entry in `.mcp.json` (browser sign-in, no key), a `heygen` skill covering avatar choice, the three audio paths and render settings, an `audio` flag on library clips, `--audio-only` on the orchestrator, and `lib/vo-segment.ts` to cut a scene's stretch of the master voiceover.
+- Modal credentials are optional in `.env`; the pipeline no longer refuses to start without placeholder Modal lines. `HIGGSFIELD_API_KEY` removed from `.env.example` (the CLI keeps its own auth).
 
 ### v4 - 2026-06-03
 

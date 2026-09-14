@@ -9,7 +9,11 @@ When I open Claude Code in the workspace root and ask you to set up the studio, 
 1. Read this entire file first.
 2. Build a checklist from the "Interactive setup steps" section using your todo system. Show me the checklist before starting.
 3. Walk through the checklist one step at a time. Ask me one thing at a time when you need input. Confirm each step before moving on. Do not dump multiple files at once.
-4. After setup completes, this file remains as the authoritative reference. Future sessions should refer back to it when I'm working in this workspace and you need to understand how things fit together.
+4. After setup completes, this file remains as the authoritative reference.
+
+Fresh clone today? Run `/onboard` inside Claude Code instead of the interactive steps below. Those steps record how the studio was originally built and stay here as reference; step 8's brand conversation is the part `/onboard` reuses.
+
+(Original flow, kept for reference:) Future sessions should refer back to it when I'm working in this workspace and you need to understand how things fit together.
 
 Important: this file lives in `docs/` but everything you create during setup goes in the workspace root, not inside `docs/`. The `docs/` folder is just for documentation. The actual working folders (`briefs/`, `videos/`, `runs/`, `templates/`, `lib/`, `.claude/`, etc.) all sit at the workspace root alongside `docs/`.
 

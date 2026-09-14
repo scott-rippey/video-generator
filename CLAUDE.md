@@ -26,39 +26,47 @@ Without dumping context unprompted, load these quietly so you're ready:
 
 If something jumps out (a brief that's been sitting unrendered for a while, a costly recent render, a memory that contradicts what you're about to suggest), surface it before going far.
 
+If this file has no `## Your workflow` section, this is a fresh clone: before loading anything else, offer once, "This studio has not been set up for you yet. Want to run /onboard? It is eight questions at most and only configures what you will use." If they decline, carry on and do not ask again this session. If `docs/workflow.md` exists and its status line says proposed, mention it once: "You have a workflow proposal at docs/workflow.md that has not been applied. Want to walk it?"
+
 ## First-time local setup
 
-When a user opens this repo for the first time and asks for help getting set up (e.g. "finish the setup" or "set this up for me"), walk them through these checks and installs in order. Each step should report what's already present vs what needs to be installed before running anything destructive.
+`/onboard` runs this checklist filtered by the interview answers; each step below says who needs it. If a user just says "set this up" or "finish the setup", point them at `/onboard` rather than running all six steps. Each step reports what's already present vs what needs to be installed before running anything destructive.
 
-**1. Local CLI tools** (install via Homebrew on macOS, apt/dnf on Linux). The user does NOT have to install these by hand — offer to install via Claude Code, then run the install:
+**1. Local CLI tools** (video users; stills-only users skip this step). Install via Homebrew on macOS, apt/dnf on Linux. The user does NOT have to install these by hand — offer to install via Claude Code, then run the install:
 
-- **FFmpeg 8.x** — audio leveling, silence generation, concat. Check: `ffmpeg -version`. Install: `brew install ffmpeg`.
-- **whisper.cpp** (`whisper-cli`) — word-level VO transcription for scene cut alignment. Check: `which whisper-cli`. Install: `brew install whisper-cpp`. Also needs a model file: download `ggml-small.en.bin` (or larger) into `~/.whisper-models/` from https://huggingface.co/ggerganov/whisper.cpp.
-- **Python 3 + Pillow** — pixel-precise UI measurement for `ui-form-fill` covers. Check: `python3 -c "from PIL import Image; print('ok')"`. Install Pillow: `python3 -m pip install --user pillow`.
+- **FFmpeg 8.x** — audio leveling, silence generation, concat. Check: `ffmpeg -version`. Install: `brew install ffmpeg`. (All video users.)
+- **whisper.cpp** (`whisper-cli`) — word-level VO transcription for scene cut alignment. AI-voice video users only, and on demand: nothing in `lib/` calls it. Check: `which whisper-cli`. Install: `brew install whisper-cpp`. Also needs a model file: download `ggml-small.en.bin` (or larger) into `~/.whisper-models/` from https://huggingface.co/ggerganov/whisper.cpp.
+- **Python 3 + Pillow** — pixel-precise UI measurement for `ui-form-fill` covers. Video users, on demand at the first `ui-form-fill` scene. Check: `python3 -c "from PIL import Image; print('ok')"`. Install Pillow: `python3 -m pip install --user pillow`.
 
-**2. Node + JS deps**
+**2. Node + JS deps** (Node: everyone, the skills installer needs it. `npm install`: video users.)
 
 - Node.js 20+ required. Check: `node --version`.
 - `npm install` to install Remotion, undici, zod, etc.
 
-**3. Higgsfield CLI + skills**
+**3. Higgsfield CLI + skills** (everyone)
 
 - Install the Higgsfield Claude Code skills (provides `higgsfield-generate`, `higgsfield-soul-id`, `higgsfield-product-photoshoot`, `higgsfield-marketplace-cards`): `npx skills add higgsfield-ai/skills`. Skills are pinned via `skills-lock.json`.
 - Authenticate the CLI (this is interactive, opens a browser): `higgsfield auth login`. Verify with `higgsfield account status` — should show plan + credit balance.
 - The Higgsfield CLI handles its own auth in `~/.higgsfield/` — there is NO `HIGGSFIELD_API_KEY` in `.env`. Do not add one.
 
-**4. API credentials in `.env`**
+**3b. HeyGen** (only when `Presenter:` is a HeyGen avatar)
+
+- Already configured in `.mcp.json` as a remote MCP server. First use: run `/mcp` inside Claude Code and complete the browser OAuth. No API key.
+- Verify with `list_avatar_groups`; if they have no avatar yet, the `heygen` skill walks `create_photo_avatar`.
+- Skip entirely if they don't need a presenter on screen; nothing else depends on it.
+
+**4. API credentials in `.env`** (video users; `ELEVENLABS_API_KEY` only when voice or music is on)
 
 - Copy `.env.example` → `.env`.
 - Set `ELEVENLABS_API_KEY`. Help the user find it: ElevenLabs dashboard → Profile + API Keys.
-- Modal is optional (not currently wired). If they want it later: `modal token new`.
+- Modal is optional and not wired; leave its two lines empty unless they set it up later (`modal token new`).
 
-**5. Voice setup**
+**5. Voice setup** (only when `Voice:` is an ElevenLabs library voice or clone)
 
 - Open `brand.json` and confirm `voice.id`. If they don't have a voice yet, walk them through cloning their voice in ElevenLabs (or picking a library voice), then paste the voice id into `brand.json`.
 - Run `/voice` inside Claude Code to test the current voice and verify the pipeline.
 
-**6. Smoke test**
+**6. Smoke test** (AI-voice video: the command below. Stills: one Nano Banana generation at the chosen size instead. No-voice video: skipped, with a pointer to the voiceover note in `docs/workflow.md`.)
 
 - Run `/video 000-smoke-test` to verify everything works end to end (~$0.10 of credits).
 
@@ -147,6 +155,7 @@ docs/                       setup spec + overview
 - **Higgsfield** (via official CLI + Skill, not REST API): all AI clips AND AI imagery. The `higgsfield-generate` skill is the primary entry point. Plus plan ($49/mo) gives access to all models including Veo 3.1, Seedance 2.0, Kling 3.0. 1,000 credits/month, top-ups available at ~$5/100. Auth lives in the CLI (`higgsfield auth login`), not in `.env`.
 - **ElevenLabs**: voice + music. Set `voice.id` in `brand.json` (clone your own voice in the ElevenLabs UI, or pick a library voice). Default settings: stability 0.5, similarity_boost 0.78, style 0, model `eleven_multilingual_v2`. API key in `.env` as `ELEVENLABS_API_KEY`. Music endpoint `https://api.elevenlabs.io/v1/music` (`music_length_ms` 3000-600000). Music generation defaults to **composition plans** (free `/v1/music/plan` then compose) so beds fill the full timeline; see the music lesson below. API model is `music_v1` (Music v2 is UI-only as of 2026-06-03; API access pending).
 - **Modal**: $30/mo free credit, no subscription. Auth via `~/.modal.toml` after `modal token new`. Reserved for future FLUX self-hosted image gen and SadTalker talking heads. Not currently wired into `lib/assets.ts`. See `.claude/skills/modal/SKILL.md` for the patterns we'd use.
+- **HeyGen** (remote MCP at `https://mcp.heygen.com/mcp/v1/`, browser OAuth via `/mcp`, no key in `.env`, optional): talking-head avatar clips from a photo avatar or digital twin. Conversation-driven, not orchestrated: the `heygen` skill asks the user which avatar, where the voice comes from (a segment of the master voiceover via `--audio-only` + `lib/vo-segment.ts`, a separate audio file, or HeyGen's own TTS), which background, and which render settings, then the MP4 lands as a `library-clip` (`audio: true` when the clip carries its own voice). Renders spend the user's HeyGen plan credits. A brand file may carry a `heygen` block (avatar ids, approved motion prompt) so choices persist across videos.
 - **Remotion**: 4.x. Local CPU. Free. Entry point per template at `templates/<name>/index.ts`. Composition id "Main".
 - **FFmpeg**: 8.1.1 local. Used for audio normalization (dynaudnorm), trimming, fades.
 
@@ -218,8 +227,10 @@ Warn before suggesting anything that would exceed the free tiers. A typical 30-6
 
 ## Slash commands
 
+- `/onboard [show|redo]` — first-run interview: configures services and voice, runs the setup checklist filtered by the answers, writes `## Your workflow` here and a proposal at `docs/workflow.md`.
 - `/video <slug>` — full pipeline (expand if needed, then run orchestrator).
 - `/brief <slug>` — only expand brief into scenes.json; no generation.
+- `tsx lib/orchestrator.ts <slug> --audio-only` — voiceover + music only, no clips, no render. Use when a conversation-driven step (a HeyGen avatar render) needs the master voiceover first; then `tsx lib/vo-segment.ts <slug> <scene-id>` cuts a scene's stretch of it.
 - `/scene-review <slug>` — walk through scenes.json, suggest tweaks, apply edits.
 - `/template <name>` — scaffold a new Remotion template.
 - `/voice` — list voices, test current voice, update settings in brand.json.
@@ -237,6 +248,7 @@ Adapted from [digitalsamba/claude-code-video-toolkit](https://github.com/digital
 - `frontend-design` — design quality patterns for templates.
 
 Built fresh:
+- `heygen` — talking-head avatar clips through the HeyGen remote MCP (added 2026-09-14).
 - `modal` — Modal cloud GPU patterns. FLUX/SadTalker jobs go here when implemented.
 
 Installed via `npx skills add higgsfield-ai/skills` (vendor-managed, run on fresh checkouts):
@@ -253,6 +265,7 @@ The original setup spec at `docs/video-studio-setup.md` was written assuming:
 2. **Default video model: "Kling default, Veo for hero".** Reality: Seedance 2.0 is a better default (cost-per-quality). Veo is opt-in for hero shots.
 3. **Single-brand workspace.** Reality: multi-brand. Root brand.json is defaults; real brands live in `assets-library/brand/<name>/`.
 4. **Modal FLUX wired into lib/assets.ts.** Reality: not needed today. Higgsfield exposes FLUX.2 directly as `model: "flux_2"`, alongside Nano Banana Pro, GPT Image 2, Seedream, Soul V2, and others. `lib/assets.ts` routes all image gen through Higgsfield. The Modal skill describes the pattern for when self-hosted FLUX makes sense (cheaper at volume); until then, `source: "modal-flux"` throws a clear error pointing the user to `source: "higgsfield"` with `model: "flux_2"`.
+5. **Setup is the spec's 23 interactive steps.** Reality (2026-09-14): setup is `/onboard`, an eight-question interview that configures only what the user will use and writes `## Your workflow`. The 23 steps stay in the spec as the record of how the studio was first built; step 8's brand conversation is the one piece `/onboard` reuses.
 
 ## API endpoints and versions confirmed (2026-05-18)
 

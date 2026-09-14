@@ -16,12 +16,13 @@ interface CliOptions {
   template: string | null;
   yes: boolean;
   briefOnly: boolean;
+  audioOnly: boolean;
 }
 
 function parseArgs(args: string[]): CliOptions {
   if (args.length === 0) {
     console.error(
-      'Usage: tsx lib/orchestrator.ts <slug> [--template <name>] [--variant <name>] [--resolution <4k|1080p>] [--yes] [--brief-only]',
+      'Usage: tsx lib/orchestrator.ts <slug> [--template <name>] [--variant <name>] [--resolution <4k|1080p>] [--yes] [--brief-only] [--audio-only]',
     );
     exit(1);
   }
@@ -32,6 +33,7 @@ function parseArgs(args: string[]): CliOptions {
     template: null,
     yes: false,
     briefOnly: false,
+    audioOnly: false,
   };
   for (let i = 0; i < args.length; i++) {
     const a = args[i]!;
@@ -45,6 +47,7 @@ function parseArgs(args: string[]): CliOptions {
       opts.resolution = next;
     } else if (a === '--yes' || a === '-y') opts.yes = true;
     else if (a === '--brief-only') opts.briefOnly = true;
+    else if (a === '--audio-only') opts.audioOnly = true;
     else if (!a.startsWith('--') && !opts.slug) opts.slug = a;
     else throw new Error(`Unknown argument: ${a}`);
   }
@@ -250,6 +253,32 @@ export async function runVideo(opts: CliOptions): Promise<RunVideoResult> {
       generationDurationMs: 0,
       renderDurationMs: 0,
       cost: { higgsfield_credits: 0, elevenlabs_voiceover_chars: 0, elevenlabs_music_chars_or_seconds: 0 },
+    };
+  }
+
+  // --audio-only: produce (or refresh) the leveled voiceover + music and stop.
+  // Used when a later, conversation-driven step needs the master voiceover
+  // before any clip exists, e.g. cutting a scene's segment for a HeyGen avatar
+  // render (tsx lib/vo-segment.ts). No Higgsfield credits are touched.
+  if (opts.audioOnly) {
+    console.log('[orchestrator] --audio-only: voiceover + music only, no clip generation, no render');
+    console.log(`  Voiceover: ~${scenes.voiceover.script.length} ElevenLabs characters (cached if already generated)`);
+    if (!opts.yes) {
+      const ok = await confirm('Proceed with audio generation?');
+      if (!ok) {
+        console.log('Aborted.');
+        exit(0);
+      }
+    }
+    const [vo, mu] = await Promise.all([generateVoiceover(opts.slug, scenes), generateMusic(opts.slug, scenes)]);
+    console.log(`  voiceover: ${vo.path} (${vo.durationSeconds.toFixed(2)}s)`);
+    console.log(`  music:     ${mu.path || '(none)'}`);
+    console.log('Run again without --audio-only to generate assets and render.');
+    return {
+      finalPath: '',
+      generationDurationMs: 0,
+      renderDurationMs: 0,
+      cost: { higgsfield_credits: 0, elevenlabs_voiceover_chars: vo.charactersUsed, elevenlabs_music_chars_or_seconds: mu.charactersUsed },
     };
   }
 

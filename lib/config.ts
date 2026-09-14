@@ -111,9 +111,12 @@ export interface EnvConfig {
     musicPlanEndpoint: string;
     ttsEndpoint: string;
   };
+  // Optional: Modal is not wired into the pipeline yet (see CLAUDE.md "Spec
+  // drift"). Nothing reads these today; they are carried so a future Modal job
+  // can pick them up without a config change. Missing values never block a run.
   modal: {
-    tokenId: string;
-    tokenSecret: string;
+    tokenId: string | null;
+    tokenSecret: string | null;
   };
 }
 
@@ -126,8 +129,8 @@ export function loadEnv(): EnvConfig {
       ttsEndpoint: 'https://api.elevenlabs.io/v1/text-to-speech',
     },
     modal: {
-      tokenId: required('MODAL_TOKEN_ID'),
-      tokenSecret: required('MODAL_TOKEN_SECRET'),
+      tokenId: process.env.MODAL_TOKEN_ID || null,
+      tokenSecret: process.env.MODAL_TOKEN_SECRET || null,
     },
   };
 }

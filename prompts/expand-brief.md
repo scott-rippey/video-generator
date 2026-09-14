@@ -34,7 +34,7 @@ Briefs are loose markdown. Look for these sections (any subset may be present):
 
 - **Purpose** - what is this for, who watches it, where it lives
 - **Length target** - 15s, 30s, 60s, 90s
-- **Format** - default is horizontal 4K (3840x2160 at 30fps). Specify vertical 4K (2160x3840), square 4K (2160x2160), 1080p variants, or 21:9 cinematic only if different.
+- **Format** - if `CLAUDE.md` has a `Format:` line under `## Your workflow`, that is the default; otherwise default is horizontal 4K (3840x2160 at 30fps). Specify vertical 4K (2160x3840), square 4K (2160x2160), 1080p variants, or 21:9 cinematic only if different.
 - **Brand** - name of an `assets-library/brand/<name>/` folder. Omit to use defaults.
 - **Template** - which template under `templates/` to use, or "freeform" to compose from scratch (default: `hero-16x9`).
 - **Hook** - the opening line or moment
@@ -88,6 +88,8 @@ For scenes that need visuals, choose between Modal FLUX (image) and Higgsfield (
 Always request FLUX images at 2048+ on the long edge so they don't pixelate in 4K compositions.
 
 ## Higgsfield model selection
+
+If `CLAUDE.md` has a `Models:` line under `## Your workflow`, honor it first (locked models win over the defaults below).
 
 Per workspace preference (saved memory: feedback-default-video-model):
 
