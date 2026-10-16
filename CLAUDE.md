@@ -423,6 +423,7 @@ Remotion's `OffthreadVideo` extracts frames with FFmpeg and decodes **H.265/HEVC
 
 - **No em dashes anywhere** (code, prompts, generated content, briefs, docs). Use hyphens or sentence restructuring.
 - Keep dependencies minimal.
+- Code changes to `lib/` or `templates/` pass `npm run typecheck` and `npm run lint` with zero errors and zero warnings (`eslint.config.mjs`: typescript-eslint type-checked rules, Remotion's plugin, React hooks; the lint script runs with `--max-warnings 0`).
 - All credentials in `.env`, never echoed.
 - Asset generation in the cloud (Higgsfield, ElevenLabs, HeyGen). Render local.
 - Clips are the expensive part of a video. Reach for Seedance 2.0 whenever a human is in frame (not because it is cheap, it is not, but because it is the model that handles people reliably); otherwise prefer a Nano Banana still plus Remotion motion over an AI clip to save credits. Veo 3.1 is premium, hero shots only. Nano Banana is the default for images.

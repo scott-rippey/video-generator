@@ -52,13 +52,14 @@ export const Main: React.FC<MainInputProps> = (props) => {
             s.duration_seconds !== undefined
               ? Math.max(1, Math.round(s.duration_seconds * format.fps))
               : undefined;
+          const volume = s.volume;
           return (
             <Sequence
               key={`${scene.id}-sfx-${i}`}
               from={fromFrame}
               durationInFrames={durationFrames}
             >
-              <Audio src={staticFile(stagedPath)} volume={s.volume} />
+              <Audio src={staticFile(stagedPath)} volume={volume} />
             </Sequence>
           );
         }),

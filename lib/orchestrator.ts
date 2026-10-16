@@ -3,7 +3,7 @@ import { existsSync, mkdirSync, writeFileSync, copyFileSync, readFileSync } from
 import { resolve } from 'node:path';
 import { createInterface } from 'node:readline/promises';
 import { stdin, stdout, argv, exit } from 'node:process';
-import { briefPath, runDir, PATHS } from './config.ts';
+import { briefPath, runDir } from './config.ts';
 import { readScenes, validateTimeline, type Scenes } from './scenes.ts';
 import { generateVoiceover, generateMusic } from './audio.ts';
 import { generateSceneAssets, type AssetMap } from './assets.ts';
@@ -345,8 +345,8 @@ export async function runVideo(opts: CliOptions): Promise<RunVideoResult> {
   const renderResult = await renderTemplate(opts.slug, scenes, {
     variant: opts.variant ?? undefined,
     resolution: opts.resolution,
-    voiceover: voiceover!,
-    music: music!,
+    voiceover: voiceover,
+    music: music,
     assets,
   });
   const renderDurationMs = Date.now() - renderStart;
@@ -364,8 +364,8 @@ export async function runVideo(opts: CliOptions): Promise<RunVideoResult> {
     },
     cost: {
       higgsfield_credits: est.totalCredits,
-      elevenlabs_voiceover_chars: voiceover!.charactersUsed,
-      elevenlabs_music_chars_or_seconds: music!.charactersUsed,
+      elevenlabs_voiceover_chars: voiceover.charactersUsed,
+      elevenlabs_music_chars_or_seconds: music.charactersUsed,
     },
     assets: Object.entries(assets).map(([id, r]) => ({
       sceneId: id,
@@ -374,8 +374,8 @@ export async function runVideo(opts: CliOptions): Promise<RunVideoResult> {
       path: r.path,
       credits: r.cost.credits ?? 0,
     })),
-    voiceover_path: voiceover!.path,
-    music_path: music!.path,
+    voiceover_path: voiceover.path,
+    music_path: music.path,
     final_path: renderResult.path,
     ran_at: new Date().toISOString(),
   };
@@ -388,7 +388,7 @@ export async function runVideo(opts: CliOptions): Promise<RunVideoResult> {
     `Generation took ${(generationDurationMs / 1000).toFixed(1)}s, render took ${(renderDurationMs / 1000).toFixed(1)}s.`,
   );
   console.log(
-    `Total cost: ~${est.totalCredits.toFixed(1)} Higgsfield credits + ${voiceover!.charactersUsed} TTS chars.`,
+    `Total cost: ~${est.totalCredits.toFixed(1)} Higgsfield credits + ${voiceover.charactersUsed} TTS chars.`,
   );
 
   return {
@@ -397,8 +397,8 @@ export async function runVideo(opts: CliOptions): Promise<RunVideoResult> {
     renderDurationMs,
     cost: {
       higgsfield_credits: est.totalCredits,
-      elevenlabs_voiceover_chars: voiceover!.charactersUsed,
-      elevenlabs_music_chars_or_seconds: music!.charactersUsed,
+      elevenlabs_voiceover_chars: voiceover.charactersUsed,
+      elevenlabs_music_chars_or_seconds: music.charactersUsed,
     },
   };
 }

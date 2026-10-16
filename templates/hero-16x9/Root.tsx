@@ -60,7 +60,7 @@ export const Root: React.FC = () => {
         fps={defaultProps.format.fps}
         width={defaultProps.format.width}
         height={defaultProps.format.height}
-        defaultProps={defaultProps as unknown as Record<string, unknown>}
+        defaultProps={defaultProps}
       />
     </>
   );

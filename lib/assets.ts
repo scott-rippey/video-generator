@@ -58,16 +58,6 @@ async function run(cmd: string, args: string[]): Promise<RunResult> {
   });
 }
 
-function parseJson<T>(label: string, text: string): T {
-  try {
-    return JSON.parse(text) as T;
-  } catch (err) {
-    throw new Error(
-      `Failed to parse JSON from ${label}: ${(err as Error).message}\n--- raw ---\n${text}`,
-    );
-  }
-}
-
 // ---------- Higgsfield CLI helpers ----------
 
 interface HfJob {
@@ -509,7 +499,7 @@ export async function generateSceneAssets(slug: string, scenes: Scenes): Promise
   // "not_enough_credits" even when balance is sufficient (reservation behavior on Plus tier).
   for (const job of clipJobs) {
     const settled = await Promise.allSettled([job.run()]);
-    captureResult(job, settled[0]!);
+    captureResult(job, settled[0]);
   }
 
   if (failures.length > 0) {

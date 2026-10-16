@@ -108,7 +108,6 @@ export const UiFormFillScene: React.FC<Props> = ({
                 <FieldFill
                   key={`${scene.id}-fill-${i}`}
                   field={field}
-                  brand={brand}
                   fps={fps}
                   natW={scene.image_natural_width ?? 1}
                   natH={scene.image_natural_height ?? 1}
@@ -181,13 +180,12 @@ export const UiFormFillScene: React.FC<Props> = ({
 
 const FieldFill: React.FC<{
   field: Extract<Scene, { type: 'ui-form-fill' }>['field_fills'][number];
-  brand: Brand;
   fps: number;
   natW: number;
   natH: number;
   renderedW: number;
   renderedH: number;
-}> = ({ field, brand, fps, natW, natH, renderedW, renderedH }) => {
+}> = ({ field, fps, natW, natH, renderedW, renderedH }) => {
   const sx = renderedW / natW;
   const sy = renderedH / natH;
   const left = field.x * sx;
@@ -263,8 +261,6 @@ const ButtonPulseLayer: React.FC<{
   const localFrame = frame - atFrame;
 
   const glowFrames = Math.round(fps * 0.5);
-  const pressStartFrame = glowFrames;
-  const pressFrames = Math.round(fps * 0.18);
 
   const glowOpacity =
     localFrame < 0

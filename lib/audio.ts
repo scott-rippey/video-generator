@@ -64,7 +64,7 @@ function findSpeechEndSeconds(
   const win = Math.max(1, Math.round((windowMs / 1000) * sampleRate));
   const n = Math.floor(samples.length / win);
   if (n === 0) return null;
-  const above: boolean[] = new Array(n);
+  const above = new Array<boolean>(n);
   for (let i = 0; i < n; i++) {
     let sum = 0;
     const start = i * win;

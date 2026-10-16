@@ -176,6 +176,7 @@ Current version: **v4.2**. Minor changes bump the decimal (e.g. v4 to v4.1); sig
 
 - `/onboard` gained a services question (now nine questions at most). One screen lists Remotion (required for video), Higgsfield, ElevenLabs and HeyGen (optional) with what each does here, how it connects (local npm library, CLI plus skills, REST API key, remote MCP), an on/off filled from the earlier answers, and a sign-up link for any account the user lacks. The setup checklist now runs each service's step only when that service is on, and the HeyGen step confirms the connected account with `get_current_user`.
 - Modal removed. It was reserved for self-hosted FLUX and SadTalker but was never wired: Higgsfield already serves FLUX.2 as `flux_2` and HeyGen covers talking heads. Gone: the `modal` skill, `modal_jobs/`, the `MODAL_*` lines in `.env.example`, the `modal` Python dependency, the `modal-flux` image source, and the reserved `negative_prompt` field (old scenes.json files that still carry either keep parsing; the field is dropped). `docs/video-studio-setup.md` keeps its Modal steps as the historical record.
+- `npm run lint`: ESLint 9 flat config with typescript-eslint type-checked rules, `@remotion/eslint-plugin` and React hooks rules, failing on any warning. The existing code was brought to zero (unused helpers and variables removed, redundant assertions dropped).
 
 ### v4.1 - 2026-09-14
 
