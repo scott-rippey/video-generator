@@ -80,12 +80,12 @@ Always honor what the template actually defines. If a brief references a scene t
 
 ## Imagery vs clip selection per scene
 
-For scenes that need visuals, choose between Modal FLUX (image) and Higgsfield (clip) based on the beat's needs:
+For scenes that need visuals, choose between a Higgsfield image and a Higgsfield clip based on the beat's needs:
 
-- **Generated image (Modal FLUX)** when: motion isn't important, you want precise composition control, or the brief calls for "a still", "a photo", "a graphic", or describes a static subject. Cheaper (~$0.02 per image vs ~22.5 credits per Seedance clip).
+- **Generated image (Higgsfield, Nano Banana by default)** when: motion isn't important, you want precise composition control, or the brief calls for "a still", "a photo", "a graphic", or describes a static subject. Far cheaper than a clip; Remotion motion (push-in, keyframes) adds movement for free.
 - **Generated clip (Higgsfield)** when: motion is part of the scene's value (push-in, character moving, environmental motion), or the brief explicitly says "clip", "footage", "video", "cinematic".
 
-Always request FLUX images at 2048+ on the long edge so they don't pixelate in 4K compositions.
+Always request images at 2048+ on the long edge so they don't pixelate in 4K compositions.
 
 ## Higgsfield model selection
 

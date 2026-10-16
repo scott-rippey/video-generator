@@ -10,7 +10,7 @@ export interface AssetResult {
   sceneId: string;
   path: string;
   kind: 'image' | 'clip';
-  source: 'higgsfield' | 'modal-flux' | 'library';
+  source: 'higgsfield' | 'library';
   cost: {
     credits?: number;
     usd?: number;
@@ -208,22 +208,12 @@ async function generateImage(
   spec: {
     prompt: string;
     aspect_ratio?: string;
-    source?: 'modal-flux' | 'higgsfield';
     model?: string;
     target_width?: number;
   },
 ): Promise<AssetResult> {
   const startedAt = Date.now();
   const outPath = imagePath(slug, scene.id);
-  const source = spec.source ?? 'higgsfield';
-
-  if (source === 'modal-flux') {
-    throw new Error(
-      `scene.source="modal-flux" is not wired (Modal FLUX self-hosting is a future task). ` +
-        `Use source="higgsfield" with model="flux_2" or model="nano_banana_2" instead. Scene: ${scene.id}`,
-    );
-  }
-
   const model = spec.model ?? 'nano_banana_2';
   const params: Record<string, string | number | boolean | string[]> = {
     prompt: spec.prompt,
@@ -350,7 +340,6 @@ function collectAssetJobs(slug: string, scenes: Scenes): AssetJob[] {
             : generateImage(slug, scene, {
                 prompt: bg.prompt,
                 aspect_ratio: bg.aspect_ratio,
-                source: bg.source,
                 model: bg.model,
                 target_width: bg.target_width,
               }),
@@ -448,7 +437,6 @@ function collectAssetJobs(slug: string, scenes: Scenes): AssetJob[] {
               : generateImage(slug, scene, {
                   prompt: media.prompt,
                   aspect_ratio: media.aspect_ratio,
-                  source: media.source,
                   model: media.model,
                   target_width: media.target_width,
                 }),

@@ -90,8 +90,6 @@ no watermark, no logo, no readable text, no stock photo cliches, no plastic skin
 - Outdoor/cinematic: `no obvious CGI water, no plastic-looking foliage`
 - Faces: `no morphed features, no asymmetric eyes, no extra fingers`
 
-If a model variant (e.g., a future FLUX.2 self-hosted via Modal) does accept a negative_prompt, the scenes.json schema already has a `negative_prompt` field reserved for it. The Higgsfield CLI route just ignores it for now.
-
 ## Brand consistency
 
 When the brief references a brand:

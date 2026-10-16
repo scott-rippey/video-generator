@@ -79,13 +79,11 @@ export const musicSchema = z.discriminatedUnion('source', [
 
 const generatedImageSchema = z.object({
   type: z.literal('generated-image'),
-  source: z.enum(['modal-flux', 'higgsfield']).default('higgsfield'),
-  // For source=higgsfield, model is a Higgsfield image job_set_type
+  source: z.literal('higgsfield').default('higgsfield'),
+  // model is a Higgsfield image job_set_type
   // (e.g., "nano_banana_2", "gpt_image_2"). Defaults to nano_banana_2.
-  // For source=modal-flux, model defaults to flux2-dev and is ignored if not set.
   model: z.string().optional(),
   prompt: z.string().min(1),
-  negative_prompt: z.string().optional(),
   target_width: z.number().int().positive().default(2048),
   target_height: z.number().int().positive().optional(),
   aspect_ratio: z

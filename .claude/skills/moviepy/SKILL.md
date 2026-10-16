@@ -6,8 +6,8 @@ description: Python video composition with moviepy 2.x - overlaying deterministi
 > This skill was copied from the [claude-code-video-toolkit seed](https://github.com/digitalsamba/claude-code-video-toolkit) (commit b86feda) on 2026-05-18.
 >
 > Workspace adaptations:
-> - References to the seed's `tools/*.py` scripts (e.g., `tools/voiceover.py`, `tools/image_edit.py`, `tools/sadtalker.py`) do not exist in this workspace. Image/video/voice generation here is orchestrated by TypeScript in `lib/` (`lib/audio.ts`, `lib/assets.ts`, `lib/render.ts`) calling Modal jobs (for FLUX images) and the Higgsfield CLI (for video clips).
-> - Treat any seed-tool path as a conceptual reference; the actual command in this workspace is the corresponding `lib/*.ts` function or a direct `higgsfield`/`modal` CLI call.
+> - References to the seed's `tools/*.py` scripts (e.g., `tools/voiceover.py`, `tools/image_edit.py`, `tools/sadtalker.py`) do not exist in this workspace. Image/video/voice generation here is orchestrated by TypeScript in `lib/` (`lib/audio.ts`, `lib/assets.ts`, `lib/render.ts`) calling the Higgsfield CLI (for images and video clips) and the ElevenLabs API (for voice and music).
+> - Treat any seed-tool path as a conceptual reference; the actual command in this workspace is the corresponding `lib/*.ts` function or a direct `higgsfield` CLI call.
 > - Briefs live in `briefs/<slug>.md`, per-render workspaces in `runs/<slug>/`, finished MP4s in `videos/`.
 <!-- /VIDEO-STUDIO WORKSPACE NOTE -->
 

@@ -111,13 +111,6 @@ export interface EnvConfig {
     musicPlanEndpoint: string;
     ttsEndpoint: string;
   };
-  // Optional: Modal is not wired into the pipeline yet (see CLAUDE.md "Spec
-  // drift"). Nothing reads these today; they are carried so a future Modal job
-  // can pick them up without a config change. Missing values never block a run.
-  modal: {
-    tokenId: string | null;
-    tokenSecret: string | null;
-  };
 }
 
 export function loadEnv(): EnvConfig {
@@ -127,10 +120,6 @@ export function loadEnv(): EnvConfig {
       musicEndpoint: 'https://api.elevenlabs.io/v1/music',
       musicPlanEndpoint: 'https://api.elevenlabs.io/v1/music/plan',
       ttsEndpoint: 'https://api.elevenlabs.io/v1/text-to-speech',
-    },
-    modal: {
-      tokenId: process.env.MODAL_TOKEN_ID || null,
-      tokenSecret: process.env.MODAL_TOKEN_SECRET || null,
     },
   };
 }
@@ -142,7 +131,6 @@ export const PATHS = {
   templates: resolve(WORKSPACE_ROOT, 'templates'),
   assetsLibrary: resolve(WORKSPACE_ROOT, 'assets-library'),
   prompts: resolve(WORKSPACE_ROOT, 'prompts'),
-  modalJobs: resolve(WORKSPACE_ROOT, 'modal_jobs'),
 } as const;
 
 export function runDir(slug: string): string {

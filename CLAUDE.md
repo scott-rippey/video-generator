@@ -26,7 +26,7 @@ Without dumping context unprompted, load these quietly so you're ready:
 
 If something jumps out (a brief that's been sitting unrendered for a while, a costly recent render, a memory that contradicts what you're about to suggest), surface it before going far.
 
-If this file has no `## Your workflow` section, this is a fresh clone: before loading anything else, offer once, "This studio has not been set up for you yet. Want to run /onboard? It is eight questions at most and only configures what you will use." If they decline, carry on and do not ask again this session. If `docs/workflow.md` exists and its status line says proposed, mention it once: "You have a workflow proposal at docs/workflow.md that has not been applied. Want to walk it?"
+If this file has no `## Your workflow` section, this is a fresh clone: before loading anything else, offer once, "This studio has not been set up for you yet. Want to run /onboard? It is nine questions at most and only configures what you will use." If they decline, carry on and do not ask again this session. If `docs/workflow.md` exists and its status line says proposed, mention it once: "You have a workflow proposal at docs/workflow.md that has not been applied. Want to walk it?"
 
 ## First-time local setup
 
@@ -43,23 +43,22 @@ If this file has no `## Your workflow` section, this is a fresh clone: before lo
 - Node.js 20+ required. Check: `node --version`.
 - `npm install` to install Remotion, undici, zod, etc.
 
-**3. Higgsfield CLI + skills** (everyone)
+**3. Higgsfield CLI + skills** (when `Services:` has Higgsfield on)
 
 - Install the Higgsfield Claude Code skills (provides `higgsfield-generate`, `higgsfield-soul-id`, `higgsfield-product-photoshoot`, `higgsfield-marketplace-cards`): `npx skills add higgsfield-ai/skills`. Skills are pinned via `skills-lock.json`.
 - Authenticate the CLI (this is interactive, opens a browser): `higgsfield auth login`. Verify with `higgsfield account status` — should show plan + credit balance.
 - The Higgsfield CLI handles its own auth in `~/.higgsfield/` — there is NO `HIGGSFIELD_API_KEY` in `.env`. Do not add one.
 
-**3b. HeyGen** (only when `Presenter:` is a HeyGen avatar)
+**3b. HeyGen** (only when `Services:` has HeyGen on)
 
 - Already configured in `.mcp.json` as a remote MCP server. First use: run `/mcp` inside Claude Code and complete the browser OAuth. No API key.
-- Verify with `list_avatar_groups`; if they have no avatar yet, the `heygen` skill walks `create_photo_avatar`.
+- Verify with `get_current_user` that the connected account is theirs (the MCP holds one OAuth connection at a time, so a machine that has signed into another HeyGen account stays on it until re-auth), then `list_avatar_groups`; if they have no avatar yet, the `heygen` skill walks `create_photo_avatar`.
 - Skip entirely if they don't need a presenter on screen; nothing else depends on it.
 
-**4. API credentials in `.env`** (video users; `ELEVENLABS_API_KEY` only when voice or music is on)
+**4. API credentials in `.env`** (video users; `ELEVENLABS_API_KEY` only when `Services:` has ElevenLabs on)
 
 - Copy `.env.example` → `.env`.
 - Set `ELEVENLABS_API_KEY`. Help the user find it: ElevenLabs dashboard → Profile + API Keys.
-- Modal is optional and not wired; leave its two lines empty unless they set it up later (`modal token new`).
 
 **5. Voice setup** (only when `Voice:` is an ElevenLabs library voice or clone)
 
@@ -89,7 +88,6 @@ Two distinct phases. Keep them separate when reasoning about timing.
 
 **Generation phase (cloud, parallel, ~1-5 min regardless of resolution):**
 - All asset creation: ElevenLabs voice + music, Higgsfield image + clip jobs.
-- Modal jobs (FLUX, SadTalker) would also fire here if/when wired (see "Spec drift" below).
 - Output resolution does NOT change generation time. A Higgsfield clip takes the same time whether the final video is 4K or 1080p.
 - Fires all jobs in parallel via `Promise.all` in `lib/assets.ts` and `lib/audio.ts`.
 
@@ -135,7 +133,6 @@ prompts/
   expand-brief.md
   scene-imagery.md
   scene-clip.md
-modal_jobs/                 (reserved for Python Modal jobs; FLUX TODO)
 brand.json                  workspace defaults (voice, neutral fallbacks)
 _seed/                      reference clone; do not modify
 .env                        API credentials (gitignored)
@@ -154,7 +151,6 @@ docs/                       setup spec + overview
 
 - **Higgsfield** (via official CLI + Skill, not REST API): all AI clips AND AI imagery. The `higgsfield-generate` skill is the primary entry point. Plus plan ($49/mo) gives access to all models including Veo 3.1, Seedance 2.0, Kling 3.0. 1,000 credits/month, top-ups available at ~$5/100. Auth lives in the CLI (`higgsfield auth login`), not in `.env`.
 - **ElevenLabs**: voice + music. Set `voice.id` in `brand.json` (clone your own voice in the ElevenLabs UI, or pick a library voice). Default settings: stability 0.5, similarity_boost 0.78, style 0, model `eleven_multilingual_v2`. API key in `.env` as `ELEVENLABS_API_KEY`. Music endpoint `https://api.elevenlabs.io/v1/music` (`music_length_ms` 3000-600000). Music generation defaults to **composition plans** (free `/v1/music/plan` then compose) so beds fill the full timeline; see the music lesson below. API model is `music_v1` (Music v2 is UI-only as of 2026-06-03; API access pending).
-- **Modal**: $30/mo free credit, no subscription. Auth via `~/.modal.toml` after `modal token new`. Reserved for future FLUX self-hosted image gen and SadTalker talking heads. Not currently wired into `lib/assets.ts`. See `.claude/skills/modal/SKILL.md` for the patterns we'd use.
 - **HeyGen** (remote MCP at `https://mcp.heygen.com/mcp/v1/`, browser OAuth via `/mcp`, no key in `.env`, optional): talking-head avatar clips from a photo avatar or digital twin. Conversation-driven, not orchestrated: the `heygen` skill asks the user which avatar, where the voice comes from (a segment of the master voiceover via `--audio-only` + `lib/vo-segment.ts`, a separate audio file, or HeyGen's own TTS), which background, and which render settings, then the MP4 lands as a `library-clip` (`audio: true` when the clip carries its own voice). Renders spend the user's HeyGen plan credits. A brand file may carry a `heygen` block (avatar ids, approved motion prompt) so choices persist across videos.
 - **Remotion**: 4.x. Local CPU. Free. Entry point per template at `templates/<name>/index.ts`. Composition id "Main".
 - **FFmpeg**: 8.1.1 local. Used for audio normalization (dynaudnorm), trimming, fades.
@@ -178,7 +174,7 @@ Run `higgsfield generate cost <model> --prompt "..."` for accurate credit costs 
 - For cinematic stylized hero shots: `text2image_soul_v2` (pairs with `higgsfield-soul-id` for identity consistency).
 - For product photos: `higgsfield-product-photoshoot` skill workflow, not raw image gen.
 
-**Higgsfield image models do NOT support a `negative_prompt` parameter.** Inline negations in the positive prompt instead ("no watermark", "no stock photo cliches", etc.). The scenes.json schema reserves a `negative_prompt` field but it's only used if we wire Modal FLUX later.
+**Higgsfield image models do NOT support a `negative_prompt` parameter.** Inline negations in the positive prompt instead ("no watermark", "no stock photo cliches", etc.). There is no `negative_prompt` field in the scenes.json schema.
 
 ## Default output formats
 
@@ -220,7 +216,6 @@ When the user describes a new video, ask which project/brand it's for. If it's a
 
 - **Higgsfield Plus**: $49/mo, 1,000 credits. Top-ups ~$5/100 credits.
 - **ElevenLabs**: existing paid plan. Stays well under monthly character allowance for typical use.
-- **Modal**: free tier $30/mo credit. $0 actual usage so far.
 - **Remotion / FFmpeg**: $0 always.
 
 Warn before suggesting anything that would exceed the free tiers. A typical 30-60s video with 2-3 clips + 4-5 images + voice + music stays well within the monthly Higgsfield allowance.
@@ -249,7 +244,6 @@ Adapted from [digitalsamba/claude-code-video-toolkit](https://github.com/digital
 
 Built fresh:
 - `heygen` — talking-head avatar clips through the HeyGen remote MCP (added 2026-09-14).
-- `modal` — Modal cloud GPU patterns. FLUX/SadTalker jobs go here when implemented.
 
 Installed via `npx skills add higgsfield-ai/skills` (vendor-managed, run on fresh checkouts):
 - `higgsfield-generate` (default model: Seedance 2.0 for video, Nano Banana for image)
@@ -264,17 +258,16 @@ The original setup spec at `docs/video-studio-setup.md` was written assuming:
 1. **Higgsfield as a REST API with Bearer token, 150 free credits/mo.** Reality: Higgsfield ships an official CLI + Claude Code Skill instead. Free tier outputs are watermarked. Plus plan $49/mo, 1,000 credits. Use the CLI, not REST. No `HIGGSFIELD_API_KEY` in `.env`.
 2. **Default video model: "Kling default, Veo for hero".** Reality: Seedance 2.0 is a better default (cost-per-quality). Veo is opt-in for hero shots.
 3. **Single-brand workspace.** Reality: multi-brand. Root brand.json is defaults; real brands live in `assets-library/brand/<name>/`.
-4. **Modal FLUX wired into lib/assets.ts.** Reality: not needed today. Higgsfield exposes FLUX.2 directly as `model: "flux_2"`, alongside Nano Banana Pro, GPT Image 2, Seedream, Soul V2, and others. `lib/assets.ts` routes all image gen through Higgsfield. The Modal skill describes the pattern for when self-hosted FLUX makes sense (cheaper at volume); until then, `source: "modal-flux"` throws a clear error pointing the user to `source: "higgsfield"` with `model: "flux_2"`.
-5. **Setup is the spec's 23 interactive steps.** Reality (2026-09-14): setup is `/onboard`, an eight-question interview that configures only what the user will use and writes `## Your workflow`. The 23 steps stay in the spec as the record of how the studio was first built; step 8's brand conversation is the one piece `/onboard` reuses.
+4. **Modal for self-hosted FLUX and SadTalker.** Reality: removed in v4.2. Higgsfield exposes FLUX.2 directly as `model: "flux_2"`, alongside Nano Banana Pro, GPT Image 2, Seedream, Soul V2, and others, and HeyGen covers talking heads. `lib/assets.ts` routes all image gen through Higgsfield. The spec's Modal steps are historical.
+5. **Setup is the spec's 23 interactive steps.** Reality (2026-09-14): setup is `/onboard`, a nine-question interview that configures only what the user will use and writes `## Your workflow`. The 23 steps stay in the spec as the record of how the studio was first built; step 8's brand conversation is the one piece `/onboard` reuses.
 
 ## API endpoints and versions confirmed (2026-05-18)
 
-- **Modal**: `pip install modal` / `uv tool install modal`. Token via `modal token new`. `app = modal.App("name")`, `@app.function(gpu="L40S")`. GPUs: T4, L4, A10, L40S (recommended for FLUX), A100-40/80GB, H100, H200, B200. https://modal.com/docs/guide
 - **Remotion 4**: `renderMedia({ serveUrl, composition, codec, outputLocation, inputProps })`. Bundler via `bundle()`. Breaking changes from v3: `concurrency` (was `parallelism`), `jpegQuality` (was `quality`). https://www.remotion.dev/docs/renderer/render-media
 - **ElevenLabs TTS**: `POST https://api.elevenlabs.io/v1/text-to-speech/{voice_id}?output_format=mp3_44100_128`. Header `xi-api-key`. Body `{ text, model_id: "eleven_multilingual_v2", voice_settings: { stability, similarity_boost, style } }`. Returns binary audio. https://elevenlabs.io/docs/api-reference/text-to-speech/convert
 - **ElevenLabs Music**: `POST https://api.elevenlabs.io/v1/music`. Body `{ prompt | composition_plan, music_length_ms (3000-600000, prompt only), model_id: "music_v1", force_instrumental? (prompt only), output_format (query)? }`. `prompt` and `composition_plan` are mutually exclusive. Free composition-plan builder: `POST https://api.elevenlabs.io/v1/music/plan` body `{ prompt, music_length_ms?, model_id }` returns `{ positive_global_styles, negative_global_styles, sections[] }` (each section: section_name, positive/negative_local_styles, duration_ms, lines); `respect_sections_durations` (compose, default true) enforces section lengths. Music v2 (genre-switching, inpainting, long-form) is UI-only as of 2026-06-03; the API allows only `music_v1`. Pro tier required for PCM 44.1kHz; Creator+ for MP3 192kbps. https://elevenlabs.io/docs/api-reference/music/compose
 - **Higgsfield CLI**: v0.1.40 (verified). Commands: `auth login`, `account status`, `model list/get`, `generate create/cost/wait/list`, `upload`, `workspace`. Plus account, 1060 credits at time of setup. Default video model: Seedance 2.0 (`seedance_2_0`).
-- **FLUX.2**: 32B rectified-flow transformer. Up to 4MP native (4-megapixel total). Multiple variants: dev (open weights), pro, max. Available via BFL API, Replicate, Cloudflare Workers AI, Atlas Cloud. Self-hosted on Modal would use L40S (48GB VRAM). https://bfl.ai/models/flux-2
+- **FLUX.2**: 32B rectified-flow transformer. Up to 4MP native (4-megapixel total). Multiple variants: dev (open weights), pro, max. Available here through Higgsfield as `flux_2`; also via BFL API, Replicate, Cloudflare Workers AI, Atlas Cloud. https://bfl.ai/models/flux-2
 
 ## Reality Filter
 
@@ -431,7 +424,7 @@ Remotion's `OffthreadVideo` extracts frames with FFmpeg and decodes **H.265/HEVC
 - **No em dashes anywhere** (code, prompts, generated content, briefs, docs). Use hyphens or sentence restructuring.
 - Keep dependencies minimal.
 - All credentials in `.env`, never echoed.
-- Asset generation in the cloud (Higgsfield, ElevenLabs, Modal). Render local.
+- Asset generation in the cloud (Higgsfield, ElevenLabs, HeyGen). Render local.
 - Clips are the expensive part of a video. Reach for Seedance 2.0 whenever a human is in frame (not because it is cheap, it is not, but because it is the model that handles people reliably); otherwise prefer a Nano Banana still plus Remotion motion over an AI clip to save credits. Veo 3.1 is premium, hero shots only. Nano Banana is the default for images.
 - Templates always read `brand.json` (or resolved per-brand brand.json), never hardcode.
 - Human-in-the-loop confirmation gates stay even when the workflow is trusted.

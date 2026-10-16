@@ -6,8 +6,8 @@ description: AI image editing prompting patterns for Qwen-Image-Edit. Use when e
 > This skill was copied from the [claude-code-video-toolkit seed](https://github.com/digitalsamba/claude-code-video-toolkit) (commit b86feda) on 2026-05-18.
 >
 > Workspace adaptations:
-> - References to the seed's `tools/*.py` scripts (e.g., `tools/voiceover.py`, `tools/image_edit.py`, `tools/sadtalker.py`) do not exist in this workspace. Image/video/voice generation here is orchestrated by TypeScript in `lib/` (`lib/audio.ts`, `lib/assets.ts`, `lib/render.ts`) calling Modal jobs (for FLUX images) and the Higgsfield CLI (for video clips).
-> - Treat any seed-tool path as a conceptual reference; the actual command in this workspace is the corresponding `lib/*.ts` function or a direct `higgsfield`/`modal` CLI call.
+> - References to the seed's `tools/*.py` scripts (e.g., `tools/voiceover.py`, `tools/image_edit.py`, `tools/sadtalker.py`) do not exist in this workspace. Image/video/voice generation here is orchestrated by TypeScript in `lib/` (`lib/audio.ts`, `lib/assets.ts`, `lib/render.ts`) calling the Higgsfield CLI (for images and video clips) and the ElevenLabs API (for voice and music).
+> - Treat any seed-tool path as a conceptual reference; the actual command in this workspace is the corresponding `lib/*.ts` function or a direct `higgsfield` CLI call.
 > - Briefs live in `briefs/<slug>.md`, per-render workspaces in `runs/<slug>/`, finished MP4s in `videos/`.
 <!-- /VIDEO-STUDIO WORKSPACE NOTE -->
 
@@ -15,7 +15,7 @@ description: AI image editing prompting patterns for Qwen-Image-Edit. Use when e
 
 # Qwen-Image-Edit Skill
 
-AI-powered image editing using Qwen-Image-Edit-2511. **In this workspace, hosted on Modal (not RunPod as the seed used).** The prompting patterns below are model-specific and remain accurate; only the invocation differs (`modal run modal_jobs/qwen_edit.py ...` instead of `tools/image_edit.py`).
+AI-powered image editing using Qwen-Image-Edit-2511. **Not wired in this workspace** (the seed ran it on RunPod). For image edits here, use Higgsfield image models with an input image (`higgsfield-generate`). The prompting patterns below are model-specific and still apply wherever Qwen-Image-Edit runs.
 
 **Status:** Evolving - learnings being captured as we experiment
 

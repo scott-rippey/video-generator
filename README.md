@@ -1,4 +1,4 @@
-# Video Studio (v4.1)
+# Video Studio (v4.2)
 
 A programmable video studio for [Claude Code](https://claude.com/claude-code). Describe a video in a markdown brief, and Claude composes it from AI-generated voice, music, imagery, and clips, then assembles a finished MP4 with [Remotion](https://www.remotion.dev/).
 
@@ -19,7 +19,6 @@ This is a starting point, not a product. It hooks a set of services together (vo
 | Voice + Music + SFX | [ElevenLabs](https://elevenlabs.io/) | Paid plan |
 | Image + Clip generation | [Higgsfield](https://higgsfield.ai/) via official CLI + skill | Plus plan $49/mo, 1000 credits |
 | (Optional) Talking-head avatar clips | [HeyGen](https://www.heygen.com/) via remote MCP (browser OAuth) | Your HeyGen plan credits |
-| (Optional) Self-hosted FLUX, SadTalker | [Modal](https://modal.com/) | Free $30/mo credit |
 | Render | [Remotion](https://www.remotion.dev/) 4.x | Free, local CPU |
 | Audio leveling | FFmpeg 8.x | Free |
 | Word-level VO transcription | [whisper.cpp](https://github.com/ggerganov/whisper.cpp) (`whisper-cli`) | Free, local |
@@ -41,7 +40,7 @@ This is a starting point, not a product. It hooks a set of services together (vo
 
 **Setup**
 
-> **Easiest path: open the repo in Claude Code and run `/onboard`.** Eight questions at most, one at a time: what you make, whether you write the scripts, where the voice comes from, whether there is a person on screen, which generators to lock, your default format, how you file your work. It turns services on or off, walks only the install steps you need, picks your voice, and writes a workflow proposal you can apply later. The manual commands below are what it runs for a typical video user.
+> **Easiest path: open the repo in Claude Code and run `/onboard`.** Nine questions at most, one at a time: what you make, whether you write the scripts, where the voice comes from, whether there is a person on screen, which services to hook in (each explained: what it does, how it connects, where to sign up), which generators to lock, your default format, how you file your work. It turns services on or off, walks only the install steps you need, picks your voice, and writes a workflow proposal you can apply later. The manual commands below are what it runs for a typical video user.
 
 ```bash
 # 1. Clone
@@ -63,7 +62,7 @@ npx higgsfield auth login
 # 5. Copy and fill in API keys
 cp .env.example .env
 # Edit .env: set ELEVENLABS_API_KEY
-# (Modal and Higgsfield REST keys are NOT used; the Higgsfield CLI handles auth on its own)
+# (No Higgsfield key; the Higgsfield CLI handles auth on its own)
 
 # 6. Open in Claude Code
 claude
@@ -171,7 +170,12 @@ The skills layer started as a fork of [digitalsamba/claude-code-video-toolkit](h
 
 ## Versions
 
-Current version: **v4.1**. Minor changes bump the decimal (e.g. v4 to v4.1); significant features bump the major (v4 to v5). Keep the `(v4.1)` marker in the title heading in sync with the newest entry below.
+Current version: **v4.2**. Minor changes bump the decimal (e.g. v4 to v4.1); significant features bump the major (v4 to v5). Keep the `(v4.2)` marker in the title heading in sync with the newest entry below.
+
+### v4.2 - 2026-10-16
+
+- `/onboard` gained a services question (now nine questions at most). One screen lists Remotion (required for video), Higgsfield, ElevenLabs and HeyGen (optional) with what each does here, how it connects (local npm library, CLI plus skills, REST API key, remote MCP), an on/off filled from the earlier answers, and a sign-up link for any account the user lacks. The setup checklist now runs each service's step only when that service is on, and the HeyGen step confirms the connected account with `get_current_user`.
+- Modal removed. It was reserved for self-hosted FLUX and SadTalker but was never wired: Higgsfield already serves FLUX.2 as `flux_2` and HeyGen covers talking heads. Gone: the `modal` skill, `modal_jobs/`, the `MODAL_*` lines in `.env.example`, the `modal` Python dependency, the `modal-flux` image source, and the reserved `negative_prompt` field (old scenes.json files that still carry either keep parsing; the field is dropped). `docs/video-studio-setup.md` keeps its Modal steps as the historical record.
 
 ### v4.1 - 2026-09-14
 

@@ -16,7 +16,7 @@ videos/*.mp4
 dist/
 build/
 
-# Python caches (if Modal jobs are added)
+# Python caches
 __pycache__/
 *.pyc
 .pytest_cache/

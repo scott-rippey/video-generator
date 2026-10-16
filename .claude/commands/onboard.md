@@ -5,7 +5,7 @@ argument-hint: [show|redo]
 
 # /onboard
 
-Turn a fresh clone into a studio shaped around what the user actually makes. Eight questions at most, one at a time. Then configure, document, run only the setup steps their answers need, and write a proposal for how the workspace could be laid out. Nothing is moved or restructured by this command; the proposal is an offer.
+Turn a fresh clone into a studio shaped around what the user actually makes. Nine questions at most, one at a time. Then configure, document, run only the setup steps their answers need, and write a proposal for how the workspace could be laid out. Nothing is moved or restructured by this command; the proposal is an offer.
 
 ## Arguments
 
@@ -51,28 +51,49 @@ Turn a fresh clone into a studio shaped around what the user actually makes. Eig
    (a) An ElevenLabs library voice. I will pick one
    (b) My own ElevenLabs clone, already made or about to be
    (c) No AI voice. I record it, or the person on camera speaks"
-   Writes `Voice:`. For (a) and (b), the ElevenLabs key and voice steps join the checklist; after the checklist, run the `/voice list` flow so the user picks a voice, then write `voice.id` and `voice.name` into `brand.json` exactly as `/voice update` does. Record the model as `eleven_multilingual_v2` with client-side break tags (stated, not asked; changeable later in conversation). For (c), leave `voice.id` null, ask "Do you still want ElevenLabs music beds?" (yes keeps the key step, no drops ElevenLabs entirely), and note for the proposal that `lib/scenes.ts` currently requires a `voiceover` block, so running the orchestrator without one is a follow-up they can ask for. Default: (a).
+   Writes `Voice:`. For (a) and (b), the ElevenLabs key and voice steps join the checklist; after the checklist, run the `/voice list` flow so the user picks a voice, then write `voice.id` and `voice.name` into `brand.json` exactly as `/voice update` does. Record the model as `eleven_multilingual_v2` with client-side break tags (stated, not asked; changeable later in conversation). For (c), leave `voice.id` null, and note for the proposal that `lib/scenes.ts` currently requires a `voiceover` block, so running the orchestrator without one is a follow-up they can ask for. Default: (a).
 
 6. **Q5. Presenter.** (skip if Q1 = c)
    "Is there a person on screen?
    (a) A HeyGen avatar, a photo avatar or digital twin
    (b) Real footage I record myself
    (c) Nobody. Generated visuals only"
-   Writes `Presenter:`. For (a), keep `.mcp.json` as is, add setup step 3b (HeyGen `/mcp` OAuth, `list_avatar_groups`) to the checklist, and after OAuth write the chosen group and look ids into the brand file's `heygen` block (root `brand.json` for a single brand, the per-brand file otherwise) following `.claude/skills/heygen/SKILL.md`. Also record `Unit of work cap: 165s per avatar chunk (HeyGen 180s render limit)`. For (b) and (c), rewrite `.mcp.json` to `{ "mcpServers": {} }` and tell the user the one-line HeyGen entry to restore is in `.claude/skills/heygen/SKILL.md`. Default: (c).
+   Writes `Presenter:`. For (a), HeyGen is suggested on in Q6, and after its OAuth step you write the chosen group and look ids into the brand file's `heygen` block (root `brand.json` for a single brand, the per-brand file otherwise) following `.claude/skills/heygen/SKILL.md`. Also record `Unit of work cap: 165s per avatar chunk (HeyGen 180s render limit)`. Default: (c).
 
-7. **Q6. Models.** (always; stills users see only b and c)
+7. **Q6. Services.** (always, one screen, all services at once)
+   "Here is what this studio can hook into. I have marked what your answers suggest; tell me which ones you want on, or say "looks right".
+
+   | Service | What it does here | How it connects | Need it? | Your setup |
+   |---|---|---|---|---|
+   | Remotion | Assembles every video: scenes, overlays, audio, the final MP4 | npm library, renders on your machine, no account | Required for video | on |
+   | Higgsfield | Generates the AI images and video clips (Nano Banana, Seedance, Kling, Veo and more) | Official CLI plus Claude Code skills, signs in through the browser | Optional, but nearly everyone wants it | <on/off> |
+   | ElevenLabs | AI voiceover (a library voice or your own clone), music beds, sound effects | REST API, one API key in `.env` | Optional | <on/off> |
+   | HeyGen | Talking-head avatar clips, a photo avatar or digital twin speaking on screen | Remote MCP server in `.mcp.json`, signs in through the browser with `/mcp` | Optional | <on/off> |
+
+   Remotion also uses FFmpeg on your machine for audio leveling, trims and fades; the setup installs it for you."
+
+   Fill the Your setup column from earlier answers: Remotion on for every video user (stills-only users: show it as "not needed for stills"); Higgsfield on unless the user brings all their own visuals; ElevenLabs on when `Voice:` is an ElevenLabs voice, off otherwise (say it can still be on just for music beds); HeyGen on only when `Presenter:` is a HeyGen avatar. Fill the table with these values before showing it, never the `<on/off>` placeholders. Writes `Services:`.
+
+   For every service turned on, ask in the same turn "Do you already have a <name> account?" and for any they lack, point them to sign up (they make the account; the checklist does the connecting):
+   - Higgsfield: https://higgsfield.ai
+   - ElevenLabs: https://elevenlabs.io/app/sign-up
+   - HeyGen: https://app.heygen.com/signup
+
+   If a choice conflicts with an earlier answer (HeyGen off with a HeyGen avatar presenter, ElevenLabs off with an ElevenLabs voice, Higgsfield off for a stills user), say what breaks in one sentence and ask which to change. Higgsfield off means no `generated-image` or `generated-clip` scenes, only supplied footage, screenshots, and avatar clips; skip Q7 in that case. HeyGen off means `.mcp.json` is rewritten to `{ "mcpServers": {} }`; tell the user the one-line entry to restore is in `.claude/skills/heygen/SKILL.md`. Default: the Your setup column as filled.
+
+8. **Q7. Models.** (skip if Higgsfield is off; stills users see only b and c)
    "Which generators do you want to lock in? The defaults are Nano Banana 2 for stills and Seedance 2.0 for clips, with Kling 3.0 for animating a still.
    (a) Keep the defaults and pick per scene when it matters
    (b) Lock one or two. Tell me which
    (c) Stills only: Nano Banana 2 unless you say otherwise"
    Writes `Models:`. No config file reads this line; `prompts/expand-brief.md` and your `higgsfield-generate` calls honor it. Default: (a), or (c) for stills.
 
-8. **Q7. Format.** (always)
+9. **Q8. Format.** (always)
    Video: "Default output? (a) Horizontal 4K at 30fps (b) Horizontal 1080p (c) Vertical 4K (d) Something else. Give me width x height and fps"
    Stills: "Default image size? For example 1280x720 for a YouTube thumbnail, 3000x3000 for a podcast cover. Give me the size, or tell me what it is for and I will suggest one."
    Writes `Format:`. `prompts/expand-brief.md` reads this line before falling back to its 4K default. Default: (a) for video.
 
-9. **Q8. Unit of work and layout.** (always)
+10. **Q9. Unit of work and layout.** (always)
    "Last one. Today the workspace is laid out as a brief in briefs/, a working folder in runs/<slug>/, and the finished file in videos/. What is one unit of work for you, and how do you want it filed?
    (a) One video per brief. Keep the layout as it is
    (b) One episode per folder, something like episodes/episode-12/
@@ -80,18 +101,18 @@ Turn a fresh clone into a studio shaped around what the user actually makes. Eig
    (d) Describe it"
    Writes `Unit of work:` and `Layout:`. Anything other than (a) goes into the proposal only, with the honest note that `PATHS` in `lib/config.ts` reads `briefs/`, `runs/` and `videos/`, so pipeline users who rename them need a small `PATHS` edit later or keep those three folders and add their own beside them. Stills users never run the pipeline, so any layout works for them. Default: (a).
 
-10. **Derive, do not ask:** `Approvals:` (pipeline users: the orchestrator cost gate, which stays; conversation-driven stages such as HeyGen renders and stills: confirm each generation), `Handoff:` (an mp4 in `videos/` for pipeline users, a finished still for stills users, or whatever the user described in Q1 or Q8), `Services:` (ElevenLabs, Higgsfield, HeyGen, Modal, each on or off), `Proposal:` (path and status). Show these on the summary screen as editable lines.
+11. **Derive, do not ask:** `Approvals:` (pipeline users: the orchestrator cost gate, which stays; conversation-driven stages such as HeyGen renders and stills: confirm each generation), `Handoff:` (an mp4 in `videos/` for pipeline users, a finished still for stills users, or whatever the user described in Q1 or Q9), `Proposal:` (path and status). Show these on the summary screen as editable lines.
 
-11. **Summary gate.** Show one screen: the workflow lines exactly as they will appear in `CLAUDE.md`, the services table, and the filtered checklist that will run (see `CLAUDE.md` "First-time local setup" for which steps apply to which answers). Ask: "Good to go? I will write the section, then run the checklist one step at a time." Stop until they say yes. Invite corrections to any line.
+12. **Summary gate.** Show one screen: the workflow lines exactly as they will appear in `CLAUDE.md`, the services table from Q6 with the final on/off, and the filtered checklist that will run (see `CLAUDE.md` "First-time local setup" for which steps apply to which answers). Ask: "Good to go? I will write the section, then run the checklist one step at a time." Stop until they say yes. Invite corrections to any line.
 
-12. **Write, in this order.**
+13. **Write, in this order.**
     1. Insert the `## Your workflow` section into `CLAUDE.md` directly after `## On session start`, using the block below.
-    2. `brand.json` per Q2, Q4 and Q5. Touch only `voice.id`, `voice.name`, `colors`, `fonts`, `logo_path`, `tone` and the `heygen` block. Multi-brand: scaffold the per-brand file.
-    3. `.mcp.json` per Q5.
+    2. `brand.json` per Q2, Q4 and Q5 (the `heygen` block only when HeyGen is on). Touch only `voice.id`, `voice.name`, `colors`, `fonts`, `logo_path`, `tone` and the `heygen` block. Multi-brand: scaffold the per-brand file.
+    3. `.mcp.json` per Q6.
     4. Run the filtered checklist from `CLAUDE.md` "First-time local setup", one step at a time, reporting present versus missing before installing anything. Stop at the first failed step, as that section says.
     5. Write `docs/workflow.md` (see below) and make the offer.
 
-13. **Close with the next step.** AI-voice video users: `/video 000-smoke-test`. Stills users: "Describe your first thumbnail and I will generate it." No-voice video users: point at the voiceover follow-up in the proposal.
+14. **Close with the next step.** AI-voice video users: `/video 000-smoke-test`. Stills users: "Describe your first thumbnail and I will generate it." No-voice video users: point at the voiceover follow-up in the proposal.
 
 ## The `## Your workflow` block
 
@@ -111,7 +132,7 @@ Written by /onboard on <date>. Run /onboard redo to change it, /onboard show to 
 - Layout: <briefs/ runs/<slug>/ videos/ | ... (proposal, not applied)>
 - Approvals: <line>
 - Handoff: <line>
-- Services: ElevenLabs <on|off>, Higgsfield on, HeyGen <on|off>, Modal off
+- Services: Remotion <on|not needed>, Higgsfield <on|off>, ElevenLabs <on|off>, HeyGen <on|off>
 - Proposal: docs/workflow.md (status: proposed)
 ```
 

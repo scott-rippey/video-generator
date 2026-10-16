@@ -30,7 +30,6 @@ Nothing burns credits without explicit approval. Even after a brief is locked, t
 - **Higgsfield** for AI video clips and AI imagery. One subscription gets access to Seedance 2.0, Veo 3.1, Kling 3.0, Cinematic Studio, Nano Banana, GPT Image 2, and more through a single CLI.
 - **ElevenLabs** for voiceover (using your cloned voice) and AI music generation. Both run off the same paid plan.
 - **HeyGen** (optional) for talking-head avatar clips: a photo avatar or digital twin lip-synced to the voiceover, dropped into the timeline as a clip. Connected as a remote MCP server with browser sign-in, no API key.
-- **Modal** for cloud GPU jobs (FLUX.2 image generation when wired, SadTalker talking heads when added). Pay-as-you-go with $30/month free credit.
 - **Remotion** for the final composition and render. Open source; runs locally on your CPU.
 - **FFmpeg** for audio normalization (the dynaudnorm pass that fixes the volume fade on long voiceovers) and any pre-ingest video processing.
 
@@ -68,7 +67,6 @@ Most videos run within free tiers and existing subscriptions. Rough per-video es
 - **ElevenLabs voiceover and music**: both pull from the existing paid plan's monthly character allowance. A typical 30 to 60 second video stays well under normal usage.
 - **Higgsfield clips and AI imagery**: pulls from the monthly Higgsfield credit allowance. Seedance 2.0 at 1080p costs about 22.5 credits per 5 second clip. A 60 second video with a couple of clips and a few images lands around 60 to 80 credits.
 - **HeyGen avatar clips**: billed from the HeyGen plan's own credits, one render per avatar scene. Optional; nothing else depends on it.
-- **Modal**: $0 for now while Higgsfield handles both clips and images. Becomes relevant if you wire up FLUX.2 self-hosted for cheaper bulk image generation, or add SadTalker talking heads.
 - **Remotion render**: $0. Runs locally.
 
 The studio surfaces a cost estimate before every render so you see exactly what's about to get charged.
