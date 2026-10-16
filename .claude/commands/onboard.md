@@ -65,14 +65,17 @@ Turn a fresh clone into a studio shaped around what the user actually makes. Nin
 
    | Service | What it does here | How it connects | Need it? | Your setup |
    |---|---|---|---|---|
-   | Remotion | Assembles every video: scenes, overlays, audio, the final MP4 | npm library, renders on your machine, no account | Required for video | on |
-   | Higgsfield | Generates the AI images and video clips (Nano Banana, Seedance, Kling, Veo and more) | Official CLI plus Claude Code skills, signs in through the browser | Optional, but nearly everyone wants it | <on/off> |
-   | ElevenLabs | AI voiceover (a library voice or your own clone), music beds, sound effects | REST API, one API key in `.env` | Optional | <on/off> |
-   | HeyGen | Talking-head avatar clips, a photo avatar or digital twin speaking on screen | Remote MCP server in `.mcp.json`, signs in through the browser with `/mcp` | Optional | <on/off> |
+   | Remotion | Assembles every video: scenes, overlays, audio, the final MP4 | npm library, renders on your machine, no account | Required, free | on |
+   | FFmpeg | Levels the voiceover and music so they stay even, adds the pauses in your script, trims and fades audio, converts clips Remotion can't decode reliably | Command-line tool on your machine, setup installs it | Required, free | on |
+   | whisper.cpp | Transcribes the finished voiceover with a timestamp on every word, so scene cuts land right after each sentence instead of at guessed times | Command-line tool plus a one-time speech model download (about 490 MB), setup installs both | Required, free | on |
+   | Python + Pillow | Measures screenshots pixel by pixel, so typed text in form-fill scenes sits exactly inside the input boxes | Python library on your machine, setup installs it | Required, free | on |
+   | Higgsfield | Generates the AI images and video clips (Nano Banana, Seedance, Kling, Veo and more) | Official CLI plus Claude Code skills, signs in through the browser | Optional, paid, but nearly everyone wants it | <on/off> |
+   | ElevenLabs | AI voiceover (a library voice or your own clone), music beds, sound effects | REST API, one API key in `.env` | Optional, paid | <on/off> |
+   | HeyGen | Talking-head avatar clips, a photo avatar or digital twin speaking on screen | Remote MCP server in `.mcp.json`, signs in through the browser with `/mcp` | Optional, paid | <on/off> |
 
-   Remotion also uses FFmpeg on your machine for audio leveling, trims and fades; the setup installs it for you."
+   The free tools are always installed: they cost nothing, run on your machine, and the pipeline uses them. The paid services are your call; turn on only what you will use."
 
-   Fill the Your setup column from earlier answers: Remotion on for every video user (stills-only users: show it as "not needed for stills"); Higgsfield on unless the user brings all their own visuals; ElevenLabs on when `Voice:` is an ElevenLabs voice, off otherwise (say it can still be on just for music beds); HeyGen on only when `Presenter:` is a HeyGen avatar. Fill the table with these values before showing it, never the `<on/off>` placeholders. Writes `Services:`.
+   Fill the Your setup column from earlier answers: the four free tools are always on, for every user including stills-only (never offer to turn them off; if asked, explain what each one does and keep it); Higgsfield on unless the user brings all their own visuals; ElevenLabs on when `Voice:` is an ElevenLabs voice, off otherwise (say it can still be on just for music beds); HeyGen on only when `Presenter:` is a HeyGen avatar. Fill the table with these values before showing it, never the `<on/off>` placeholders. Writes `Services:`.
 
    For every service turned on, ask in the same turn "Do you already have a <name> account?" and for any they lack, point them to sign up (they make the account; the checklist does the connecting):
    - Higgsfield: https://higgsfield.ai
@@ -132,7 +135,7 @@ Written by /onboard on <date>. Run /onboard redo to change it, /onboard show to 
 - Layout: <briefs/ runs/<slug>/ videos/ | ... (proposal, not applied)>
 - Approvals: <line>
 - Handoff: <line>
-- Services: Remotion <on|not needed>, Higgsfield <on|off>, ElevenLabs <on|off>, HeyGen <on|off>
+- Services: Remotion, FFmpeg, whisper.cpp, Pillow on (free, required); Higgsfield <on|off>, ElevenLabs <on|off>, HeyGen <on|off>
 - Proposal: docs/workflow.md (status: proposed)
 ```
 

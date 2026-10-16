@@ -17,7 +17,7 @@ This is a starting point, not a product. It hooks a set of services together (vo
 | Layer | Tool | Cost |
 |---|---|---|
 | Voice + Music + SFX | [ElevenLabs](https://elevenlabs.io/) | Paid plan |
-| Image + Clip generation | [Higgsfield](https://higgsfield.ai/) via official CLI + skill | Plus plan $49/mo, 1000 credits |
+| Image + Clip generation | [Higgsfield](https://higgsfield.ai/) via official CLI + skill | Paid plan (credits) |
 | (Optional) Talking-head avatar clips | [HeyGen](https://www.heygen.com/) via remote MCP (browser OAuth) | Your HeyGen plan credits |
 | Render | [Remotion](https://www.remotion.dev/) 4.x | Free, local CPU |
 | Audio leveling | FFmpeg 8.x | Free |
@@ -36,7 +36,7 @@ This is a starting point, not a product. It hooks a set of services together (vo
 - A [Higgsfield](https://higgsfield.ai/) account (Plus plan recommended)
 - Optional: a [HeyGen](https://www.heygen.com/) account if you want an avatar presenter on screen
 
-> **Note**: FFmpeg, whisper.cpp, and Python (with Pillow for pixel-precise UI measurement) are used internally by the pipeline. Claude Code checks for them during `/onboard` and installs only what your answers need. You don't have to set them up by hand.
+> **Note**: Every free tool is required: Remotion (renders the video), FFmpeg (levels the voice and music, adds pauses, trims and fades), whisper.cpp (timestamps every spoken word so scene cuts line up with sentences) and Python with Pillow (pixel-precise measurement for form-fill scenes). They cost nothing and run on your machine. `/onboard` checks for them and installs whatever is missing, so you don't have to set them up by hand. Only the paid services (Higgsfield, ElevenLabs, HeyGen) are optional.
 
 **Setup**
 
@@ -46,6 +46,12 @@ This is a starting point, not a product. It hooks a set of services together (vo
 # 1. Clone
 git clone https://github.com/scott-rippey/video-generator.git
 cd video-generator
+
+# 1b. Install the free local tools (all required)
+brew install ffmpeg whisper-cpp
+python3 -m pip install --user pillow
+mkdir -p ~/.whisper-models && curl -L -o ~/.whisper-models/ggml-small.en.bin \
+  https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-small.en.bin   # one-time, about 490 MB
 
 # 2. Install JS deps
 npm install
@@ -79,7 +85,7 @@ Inside Claude Code:
 /video 000-smoke-test
 ```
 
-This runs the included smoke-test brief end to end (~$0.10 of credits) and lands an MP4 in `videos/`.
+This runs the included smoke-test brief end to end (after a cost confirmation) and lands an MP4 in `videos/`.
 
 **Your first real video**
 
@@ -174,7 +180,7 @@ Current version: **v4.2**. Minor changes bump the decimal (e.g. v4 to v4.1); sig
 
 ### v4.2 - 2026-10-16
 
-- `/onboard` gained a services question (now nine questions at most). One screen lists Remotion (required for video), Higgsfield, ElevenLabs and HeyGen (optional) with what each does here, how it connects (local npm library, CLI plus skills, REST API key, remote MCP), an on/off filled from the earlier answers, and a sign-up link for any account the user lacks. The setup checklist now runs each service's step only when that service is on, and the HeyGen step confirms the connected account with `get_current_user`.
+- `/onboard` gained a services question (now nine questions at most). One screen lists the free tools (Remotion, FFmpeg, whisper.cpp, Python with Pillow; all required and always installed, for every user) and the paid services (Higgsfield, ElevenLabs and HeyGen; optional) with what each does here, how it connects (local npm library, CLI plus skills, REST API key, remote MCP), an on/off filled from the earlier answers, and a sign-up link for any account the user lacks. The setup checklist now runs each service's step only when that service is on, and the HeyGen step confirms the connected account with `get_current_user`.
 - Modal removed. It was reserved for self-hosted FLUX and SadTalker but was never wired: Higgsfield already serves FLUX.2 as `flux_2` and HeyGen covers talking heads. Gone: the `modal` skill, `modal_jobs/`, the `MODAL_*` lines in `.env.example`, the `modal` Python dependency, the `modal-flux` image source, and the reserved `negative_prompt` field (old scenes.json files that still carry either keep parsing; the field is dropped). `docs/video-studio-setup.md` keeps its Modal steps as the historical record.
 - `npm run lint`: ESLint 9 flat config with typescript-eslint type-checked rules, `@remotion/eslint-plugin` and React hooks rules, failing on any warning. The existing code was brought to zero (unused helpers and variables removed, redundant assertions dropped).
 

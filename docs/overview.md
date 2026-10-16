@@ -67,7 +67,7 @@ Most videos run within free tiers and existing subscriptions. Rough per-video es
 - **ElevenLabs voiceover and music**: both pull from the existing paid plan's monthly character allowance. A typical 30 to 60 second video stays well under normal usage.
 - **Higgsfield clips and AI imagery**: pulls from the monthly Higgsfield credit allowance. Seedance 2.0 at 1080p costs about 22.5 credits per 5 second clip. A 60 second video with a couple of clips and a few images lands around 60 to 80 credits.
 - **HeyGen avatar clips**: billed from the HeyGen plan's own credits, one render per avatar scene. Optional; nothing else depends on it.
-- **Remotion render**: $0. Runs locally.
+- **Remotion render**: free. Runs locally.
 
 The studio surfaces a cost estimate before every render so you see exactly what's about to get charged.
 

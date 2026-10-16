@@ -32,13 +32,13 @@ If this file has no `## Your workflow` section, this is a fresh clone: before lo
 
 `/onboard` runs this checklist filtered by the interview answers; each step below says who needs it. If a user just says "set this up" or "finish the setup", point them at `/onboard` rather than running all six steps. Each step reports what's already present vs what needs to be installed before running anything destructive.
 
-**1. Local CLI tools** (video users; stills-only users skip this step). Install via Homebrew on macOS, apt/dnf on Linux. The user does NOT have to install these by hand — offer to install via Claude Code, then run the install:
+**1. Local CLI tools** (everyone). Rule: every free tool the studio uses is required and always installed; only paid services are optional. Install via Homebrew on macOS, apt/dnf on Linux. The user does NOT have to install these by hand. Offer to install via Claude Code, then run the install:
 
-- **FFmpeg 8.x** — audio leveling, silence generation, concat. Check: `ffmpeg -version`. Install: `brew install ffmpeg`. (All video users.)
-- **whisper.cpp** (`whisper-cli`) — word-level VO transcription for scene cut alignment. AI-voice video users only, and on demand: nothing in `lib/` calls it. Check: `which whisper-cli`. Install: `brew install whisper-cpp`. Also needs a model file: download `ggml-small.en.bin` (or larger) into `~/.whisper-models/` from https://huggingface.co/ggerganov/whisper.cpp.
-- **Python 3 + Pillow** — pixel-precise UI measurement for `ui-form-fill` covers. Video users, on demand at the first `ui-form-fill` scene. Check: `python3 -c "from PIL import Image; print('ok')"`. Install Pillow: `python3 -m pip install --user pillow`.
+- **FFmpeg 8.x**: voiceover and music leveling, break-tag silence, concat, fades, HEVC to H.264 for library clips (`lib/audio.ts`, `lib/render.ts`, `lib/vo-segment.ts`). Check: `ffmpeg -version`. Install: `brew install ffmpeg`.
+- **whisper.cpp** (`whisper-cli`): word-level VO transcription, used to align scene cuts to the ends of spoken sentences. Nothing in `lib/` calls it yet; Claude runs it during scene timing. Check: `which whisper-cli`. Install: `brew install whisper-cpp`. Also needs a model file (one-time, about 490 MB): download `ggml-small.en.bin` (or larger) into `~/.whisper-models/` from https://huggingface.co/ggerganov/whisper.cpp.
+- **Python 3 + Pillow**: pixel-precise UI measurement for `ui-form-fill` covers. Check: `python3 -c "from PIL import Image; print('ok')"`. Install Pillow: `python3 -m pip install --user pillow`.
 
-**2. Node + JS deps** (Node: everyone, the skills installer needs it. `npm install`: video users.)
+**2. Node + JS deps** (everyone; the skills installer needs Node, and `npm install` brings in Remotion)
 
 - Node.js 20+ required. Check: `node --version`.
 - `npm install` to install Remotion, undici, zod, etc.
@@ -67,7 +67,7 @@ If this file has no `## Your workflow` section, this is a fresh clone: before lo
 
 **6. Smoke test** (AI-voice video: the command below. Stills: one Nano Banana generation at the chosen size instead. No-voice video: skipped, with a pointer to the voiceover note in `docs/workflow.md`.)
 
-- Run `/video 000-smoke-test` to verify everything works end to end (~$0.10 of credits).
+- Run `/video 000-smoke-test` to verify everything works end to end (it goes through the cost gate first).
 
 If a check fails at any step, surface the exact error and the install command. Don't continue past a failed step.
 
@@ -149,7 +149,7 @@ docs/                       setup spec + overview
 
 ## Backends in this workspace
 
-- **Higgsfield** (via official CLI + Skill, not REST API): all AI clips AND AI imagery. The `higgsfield-generate` skill is the primary entry point. Plus plan ($49/mo) gives access to all models including Veo 3.1, Seedance 2.0, Kling 3.0. 1,000 credits/month, top-ups available at ~$5/100. Auth lives in the CLI (`higgsfield auth login`), not in `.env`.
+- **Higgsfield** (via official CLI + Skill, not REST API): all AI clips AND AI imagery. The `higgsfield-generate` skill is the primary entry point. A paid plan gives access to all models including Veo 3.1, Seedance 2.0, Kling 3.0; generation draws from the plan's monthly credits. Auth lives in the CLI (`higgsfield auth login`), not in `.env`.
 - **ElevenLabs**: voice + music. Set `voice.id` in `brand.json` (clone your own voice in the ElevenLabs UI, or pick a library voice). Default settings: stability 0.5, similarity_boost 0.78, style 0, model `eleven_multilingual_v2`. API key in `.env` as `ELEVENLABS_API_KEY`. Music endpoint `https://api.elevenlabs.io/v1/music` (`music_length_ms` 3000-600000). Music generation defaults to **composition plans** (free `/v1/music/plan` then compose) so beds fill the full timeline; see the music lesson below. API model is `music_v1` (Music v2 is UI-only as of 2026-06-03; API access pending).
 - **HeyGen** (remote MCP at `https://mcp.heygen.com/mcp/v1/`, browser OAuth via `/mcp`, no key in `.env`, optional): talking-head avatar clips from a photo avatar or digital twin. Conversation-driven, not orchestrated: the `heygen` skill asks the user which avatar, where the voice comes from (a segment of the master voiceover via `--audio-only` + `lib/vo-segment.ts`, a separate audio file, or HeyGen's own TTS), which background, and which render settings, then the MP4 lands as a `library-clip` (`audio: true` when the clip carries its own voice). Renders spend the user's HeyGen plan credits. A brand file may carry a `heygen` block (avatar ids, approved motion prompt) so choices persist across videos.
 - **Remotion**: 4.x. Local CPU. Free. Entry point per template at `templates/<name>/index.ts`. Composition id "Main".
@@ -214,11 +214,11 @@ When the user describes a new video, ask which project/brand it's for. If it's a
 
 ## Costs and free tiers
 
-- **Higgsfield Plus**: $49/mo, 1,000 credits. Top-ups ~$5/100 credits.
-- **ElevenLabs**: existing paid plan. Stays well under monthly character allowance for typical use.
-- **Remotion / FFmpeg**: $0 always.
+- **Higgsfield**: paid plan, monthly credit allowance.
+- **ElevenLabs**: paid plan. Stays well under the monthly character allowance for typical use.
+- **Remotion, FFmpeg, whisper.cpp, Pillow**: free, always.
 
-Warn before suggesting anything that would exceed the free tiers. A typical 30-60s video with 2-3 clips + 4-5 images + voice + music stays well within the monthly Higgsfield allowance.
+Never quote dollar prices; talk in credits from `higgsfield generate cost`. Warn before suggesting anything that would exceed the plan allowances. A typical 30-60s video with 2-3 clips + 4-5 images + voice + music stays well within the monthly Higgsfield allowance.
 
 ## Slash commands
 
@@ -255,7 +255,7 @@ Installed via `npx skills add higgsfield-ai/skills` (vendor-managed, run on fres
 
 The original setup spec at `docs/video-studio-setup.md` was written assuming:
 
-1. **Higgsfield as a REST API with Bearer token, 150 free credits/mo.** Reality: Higgsfield ships an official CLI + Claude Code Skill instead. Free tier outputs are watermarked. Plus plan $49/mo, 1,000 credits. Use the CLI, not REST. No `HIGGSFIELD_API_KEY` in `.env`.
+1. **Higgsfield as a REST API with Bearer token, 150 free credits/mo.** Reality: Higgsfield ships an official CLI + Claude Code Skill instead. Free tier outputs are watermarked; a paid plan is needed. Use the CLI, not REST. No `HIGGSFIELD_API_KEY` in `.env`.
 2. **Default video model: "Kling default, Veo for hero".** Reality: Seedance 2.0 is a better default (cost-per-quality). Veo is opt-in for hero shots.
 3. **Single-brand workspace.** Reality: multi-brand. Root brand.json is defaults; real brands live in `assets-library/brand/<name>/`.
 4. **Modal for self-hosted FLUX and SadTalker.** Reality: removed in v4.2. Higgsfield exposes FLUX.2 directly as `model: "flux_2"`, alongside Nano Banana Pro, GPT Image 2, Seedream, Soul V2, and others, and HeyGen covers talking heads. `lib/assets.ts` routes all image gen through Higgsfield. The spec's Modal steps are historical.
